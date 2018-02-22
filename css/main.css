@@ -1,0 +1,120 @@
+
+.container {
+    position: relative;
+    margin: 0 auto;
+    max-width: 1200px;
+    min-width: 960px;
+    padding: 40px 40px;
+    font: 14px/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.glyph {
+    border-bottom: 1px dotted #ccc;
+    padding: 10px 0 20px;
+    margin-bottom: 20px;
+}
+
+.preview-scale,
+.preview-glyphs {
+    display: flex;
+    flex-direction: row;
+}
+
+.preview-scale {
+    color: #888;
+    font-size: 12px;
+    margin-top: 24px;
+}
+
+.step {
+    flex-grow: 1;
+    line-height: 0.5;
+}
+
+html {
+    width: 100%;
+    height: 100%;
+    background-color: aliceblue;
+}
+
+body {
+    margin: 0 auto !important;
+    width: 1200px;
+    height: 100%;
+    background-color: white;
+}
+
+.lst-nv {
+    position: absolute;
+    display: inline-block;
+    width: 20%;
+}
+
+.main-nv {
+    position: absolute;
+    left: 25%;
+    display: inline-block;
+    width: 60%;
+
+}
+
+.card-nv {
+    padding-top: 16px;
+    padding-left: 18px;
+    width: 100%;
+    height: 50px;
+}
+
+.container {
+
+    width: 100%;
+    margin-top: 100px;
+}
+
+.input-search {
+    position: absolute;
+    height: 70px;
+    display: inline-block;
+    width: 237px;
+    position: relative;
+}
+
+.icon-search {
+
+    height: 23px;
+    width: 23px;
+    z-index: 10;
+    position: absolute;
+    left: 5px;
+    top: 7px;
+}
+
+.i-s {
+    border-color: #c0c0c0;
+    outline: none;
+    padding-left: 33px;
+    border-radius: 10px;
+    height: 30px;
+    width: 200px;
+    position: absolute;
+}
+.select-hd{
+    position: absolute;
+    left: 245px;
+    margin-left: 20px;
+    width: 200px;
+    display: inline-block;
+
+}
+.hd-main{
+    position: relative;
+}
+md-input-container{
+    margin: 0 !important;
+}
+md-select{
+    width: 100%;
+}
+md-input-container{
+    width: 100%;
+}

@@ -1,0 +1,65 @@
+<!doctype html>
+<html class="no-js" lang="">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title></title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/angular-material.min.css">
+    <script src="js/angular.min.js"></script>
+    <script src="node_modules/angular-aria/angular-aria.js"></script>
+    <script src="node_modules/angular-animate/angular-animate.js"></script>
+    <script src="node_modules/angular-material/angular-material.js"></script>
+    <script src="js/main.js"></script>
+</head>
+<body>
+<div ng-app="MyApp" ng-controller="AppCtrl" class="container">
+    <div class="lst-nv">
+
+        <md-button class="md-raised md-primary card-nv"> Thêm Nhân Viên</md-button>
+        <md-card class="card-nv "> Nhân viên 1</md-card>
+        <md-card class="card-nv">Nhân viên 1</md-card>
+        <md-card class="card-nv">Nhân viên 1</md-card>
+        <md-card class="card-nv">Nhân viên 1</md-card>
+        <md-card class="card-nv">Nhân viên 1</md-card>
+        <md-card class="card-nv">Nhân viên 1</md-card>
+        <md-card class="card-nv">Nhân viên 1</md-card>
+        <md-card class="card-nv">Nhân viên 1</md-card>
+        <md-card class="card-nv">
+            <md-checkbox aria-label="Tất cả" class="md-primary ck-all">Tất cả</md-checkbox>
+        </md-card>
+    </div>
+    <div class="main-nv">
+        <div class="hd-main" style="color: #444">
+            <div class="input-search">
+                <div class="icon-search">
+                    <core-icon icon="search" aria-label="search" role="img">
+                        <svg viewBox="0 0 24 24" height="100%" width="100%" preserveAspectRatio="xMidYMid meet" style="fill: #444"
+                             style="pointer-events: none; display: block;">
+                            <g>
+                                <path
+                                    d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                            </g>
+                        </svg>
+                    </core-icon>
+                </div>
+                <input class="i-s" type="text" >
+            </div>
+            <div class="select-hd">
+                <md-input-container flex="100">
+                    <label>Favorite Color</label>
+                    <md-select name="favoriteColor" ng-model="favoriteColor" required>
+                        <md-option value="red">Red</md-option>
+                        <md-option value="blue">Blue</md-option>
+                        <md-option value="green">Green</md-option>
+                    </md-select>
+                    <div class="errors" ng-messages="myForm.favoriteColor.$error">
+                        <div ng-message="required">Required</div>
+                    </div>
+                </md-input-container>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
