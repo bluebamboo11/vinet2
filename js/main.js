@@ -1,8 +1,9 @@
-angular.module('MyApp', ['ngMaterial','data-table'])
+angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
+    .controller('AppCtrl', function ($scope, $http, $mdDialog) {
 
-    .controller('AppCtrl', function ($scope, $http) {
+        $scope.lstNV = [{name: 'Tất Cả'}, {name: 'Nhân viên 1'}, {name: 'Nhân viên 1'}, {name: 'Nhân viên 1'}, {name: 'Nhân viên 1'}, {name: 'Nhân viên 1'}, {name: 'Nhân viên 1'}, {name: 'Nhân viên 1'}];
         $scope.dateLocale = {
-            formatDate: function(date) {
+            formatDate: function (date) {
                 var m = moment(date);
                 return m.isValid() ? m.format('DD / MM / YYYY') : '';
             }
@@ -28,8 +29,8 @@ angular.module('MyApp', ['ngMaterial','data-table'])
             }
         };
 
-        $scope.paging = function(offset, size) {
-            $http.get('node_modules/angular-data-table/demos/data/100.json').success(function(d) {
+        $scope.paging = function (offset, size) {
+            $http.get('node_modules/angular-data-table/demos/data/100.json').success(function (d) {
                 $scope.options.paging.count = d.length;
 
                 var set = d.splice(offset, size);
@@ -37,7 +38,7 @@ angular.module('MyApp', ['ngMaterial','data-table'])
                     $scope.data = set;
                 } else {
                     // only insert items i don't already have
-                    set.forEach(function(r, i) {
+                    set.forEach(function (r, i) {
                         var idx = i + (offset * size);
                         $scope.data[idx] = r;
                     });
@@ -46,7 +47,34 @@ angular.module('MyApp', ['ngMaterial','data-table'])
                 console.log('paging!', offset, size)
             });
         };
+        $scope.addNewNV = function (ev) {
+            var confirm = $mdDialog.prompt()
+                .parent(angular.element(document.body))
+                .title('Thêm nhân viên mới')
+                .textContent('Nhập tên nhân viên.')
+                .placeholder('Nhập...')
+                .targetEvent(ev)
+                .required(true)
+                .ok('Xong!')
+                .cancel('Hủy');
 
+            $mdDialog.show(confirm).then(function (result) {
+                $scope.lstNV.push({name:result})
+            }, function () {
+
+            });
+        };
+        $scope.upHd = function (file) {
+            Papa.parse(file, {
+                header: true,
+                complete: function (results, file) {
+                    console.log("Parsing complete:", results, file);
+                }
+            });
+        }
+        $scope.selectNv = function (index) {
+            $scope.index = index;
+        }
     })
     .config(function ($mdDateLocaleProvider) {
         $mdDateLocaleProvider.months = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
