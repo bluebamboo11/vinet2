@@ -16,6 +16,7 @@
     <script src="node_modules/moment/min/moment.min.js"></script>
     <script src="node_modules/angular-data-table/release/dataTable.min.js"></script>
     <script src="js/ng-file-upload.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/4.10.1/firebase.js"></script>
     <script src="js/main.js"></script>
 </head>
 <body>
@@ -26,46 +27,43 @@
             <md-icon md-svg-src="img/ic_person_add_black_24px.svg" style="padding-right: 10px!important;"></md-icon>
             Thêm Nhân Viên
         </md-button>
-        <md-button  ng-click="selectNv($index)" class="card-nv md-raised" ng-repeat="nv in lstNV" ng-class="{'card-click':$index==index}">{{nv.name}}</md-button>
-
-
+        <md-button  ng-click="selectNv($index)" class="card-nv md-raised" ng-repeat="nv in lstNV " ng-class="{'card-click':$index==index}">{{nv.name}}</md-button>
     </div>
     <div class="main-nv">
         <md-card class="top-main">
-            <form class="add-hd">
+            <form class="add-hd" ng-submit="addHD($event)" >
                 <div class="input-add">
                     <md-input-container class="md-icon-float md-block">
                         <label>Nhập mã đơn hàng ...</label>
                         <md-icon md-svg-src="img/ic_note_add_black_24px.svg"></md-icon>
-                        <input ng-model="maDonHang" type="text">
+                        <input ng-model="maDonHang" type="text" style="text-transform: uppercase" ng-disabled="index==0">
                     </md-input-container>
                 </div>
-                <md-button type="submit" class="md-raised button-add" md-colors="{background: 'green'}">Thêm</md-button>
+                <md-button type="submit" class="md-raised button-add md-primary"  ng-disabled="index==0">Thêm</md-button>
             </form>
             <div class="hd-main" style="color: #444">
-                <div class="input-search">
+                <form class="input-search" ng-submit="searchHD($event)">
                     <md-input-container class="md-icon-float md-block">
                         <label>Tìm hóa đơn ...</label>
                         <md-icon md-svg-src="img/ic_search_black_24px.svg"></md-icon>
-                        <input ng-model="searchKey" type="text">
+                        <input ng-model="searchKey" type="text" style="text-transform: uppercase">
                     </md-input-container>
-                </div>
+                </form>
                 <div class="select-hd">
                     <md-input-container flex="100">
                         <label>Lọc hóa đơn</label>
-                        <md-select name="locHoaDon" ng-model="favorite" required>
-                            <md-option value="red">Ngày</md-option>
-                            <md-option value="blue">Tháng</md-option>
-                            <md-option value="green">Tất cả</md-option>
+                        <md-select name="locHoaDon" ng-model="locDay" ng-change="locHd()" required>
+                            <md-option value="day">Ngày</md-option>
+                            <md-option value="month">Tháng</md-option>
+                            <md-option value="all">Tất cả</md-option>
                         </md-select>
-                        <div class="errors" ng-messages="myForm.favorite.$error">
-                            <div ng-message="required">Required</div>
-                        </div>
                     </md-input-container>
                 </div>
                 <div class="date-l">
-                    <md-datepicker ng-model="a" md-placeholder="Nhập ngày" md-date-locale="dateLocale"></md-datepicker>
-
+                    <md-datepicker ng-if="locDay=='month'" md-mode="month"  ng-disabled="!locDay||locDay=='all'"
+                                   ng-change="locHd()" ng-model="dateSearch" md-placeholder="Nhập ngày" md-date-locale="dateLocale"></md-datepicker>
+                    <md-datepicker ng-if="!locDay||locDay=='all'||locDay=='day'"    ng-disabled="!locDay||locDay=='all'"
+                                   ng-change="locHd()" ng-model="dateSearch" md-placeholder="Nhập ngày" md-date-locale="dateLocale"></md-datepicker>
                 </div>
             </div>
         </md-card>
