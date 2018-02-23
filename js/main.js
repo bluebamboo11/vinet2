@@ -11,34 +11,31 @@ firebase.initializeApp(config);
 angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
     .controller('AppCtrl', function ($scope, $http, $mdDialog, $mdToast) {
         $scope.dateSearch = new Date();
-        $scope.month='';
-        $scope.modeDate ='day';
         $scope.data = [];
         $scope.maDonHang = '';
         $scope.index = 0;
         $scope.lstNV = [{name: 'Tất cả'}];
         $scope.searchKey = '';
-        $scope.locDay = undefined;
+        $scope.locDay = 'month';
+        var blackLst = [];
         var database = firebase.database();
         getListHD('Tất cả');
+        getBlackLst();
         var removeLis;
         var commentsRef = database.ref('nv');
         commentsRef.on('child_added', function (data) {
             $scope.$apply(function () {
-
                 $scope.lstNV.push({name: data.key})
-
             });
         });
-      $scope.dateLocale = {
+        $scope.dateLocale = {
             formatDate: function (date) {
                 var m = moment(date);
                 return m.isValid() ? m.format('DD / MM / YYYY') : '';
             }
         };
-
         $scope.options = {
-            emptyMessage:'Không có đơn hàng ',
+            emptyMessage: 'Không có đơn hàng ',
             rowHeight: 50,
             headerHeight: 50,
             footerHeight: 50,
@@ -60,7 +57,6 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 externalPaging: true
             }
         };
-
         $scope.paging = function (offset, size) {
 
         };
@@ -102,7 +98,30 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             Papa.parse(file, {
                 header: true,
                 complete: function (results, file) {
-                    console.log("Parsing complete:", results, file);
+                    for (var i = 0; i < results.data.length; i++) {
+                        if (results.data[i]['Tracking Code'] && results.data[i]['Shipping Phone Number']) {
+                            database.ref('employees/Tất cả/order/' + results.data[i]['Tracking Code'] + '/phone')
+                                .set(results.data[i]['Shipping Phone Number']);
+                            for (var j = 1; j < $scope.lstNV.length; j++) {
+                                updatePhone($scope.lstNV[j].name, results.data[i]['Shipping Phone Number'], results.data[i]['Tracking Code']);
+
+                            }
+                        }
+                    }
+                }
+            });
+        };
+        $scope.upBlackLst = function (file) {
+            Papa.parse(file, {
+                header: true,
+                complete: function (results, file) {
+                    for (var i = 0; i < results.data.length; i++) {
+                        if (results.data[i]['Shipping Phone Number']) {
+                            database.ref('black lst/' + results.data[i]['Shipping Phone Number'])
+                                .set('');
+
+                        }
+                    }
                 }
             });
         };
@@ -171,8 +190,8 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                             $mdDialog.alert()
                                 .parent(angular.element(document.body))
                                 .clickOutsideToClose(true)
-                                .title('Tìm Đơn Hàng')
-                                .textContent('Đơn hàng ' + snapshot.key + ' Đã được nhân viên ' + snapshot.val().nv + ' Thêm vào ' + snapshot.val().date)
+                                .title('Đơn hàng : ' + snapshot.key)
+                                .textContent('Nhân viên : ' + snapshot.val().nv + ' -- Thời gian : ' + snapshot.val().date)
                                 .ok('Ok')
                                 .targetEvent(ev)
                         );
@@ -196,18 +215,34 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         $scope.locHd = function () {
             $scope.options.paging.count = 0;
             $scope.data = [];
-            if($scope.locDay==='day'){
-                $scope.modeDate ='day';
+            if ($scope.locDay === 'day') {
+                $scope.modeDate = 'day';
 
-            }if($scope.locDay==='month') {
+            }
+            if ($scope.locDay === 'month') {
 
             }
             getListHD($scope.lstNV[$scope.index].name);
         };
 
+        function getBlackLst() {
+            database.ref('black lst').on('child_added', function (data) {
+                blackLst.push(data.key);
+            })
+        }
+
+        function updatePhone(name, phone, code) {
+            database.ref('employees/' + name + '/order/' + code).once('value').then(function (snapshot) {
+                if (snapshot) {
+                    database.ref('employees/' + name + '/order/' + snapshot.key + '/phone')
+                        .set(phone)
+                }
+            });
+        }
+
         function addDH() {
             if ($scope.maDonHang) {
-                var donHang = angular.copy( $scope.maDonHang);
+                var donHang = angular.copy($scope.maDonHang);
                 $scope.maDonHang = '';
                 if ($scope.maDonHang !== 'Tất Cả') {
                     database.ref('employees/' + $scope.lstNV[$scope.index].name + '/order/' + donHang).set({
@@ -259,7 +294,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             } else {
                 removeLis = database.ref('employees/' + code + '/order');
             }
-            removeLis.limitToLast(50).on('child_added', function (data) {
+            removeLis.on('child_added', function (data) {
                 $scope.$apply(function () {
                     $scope.data.unshift({
                         code: data.key,
@@ -278,9 +313,5 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         $mdDateLocaleProvider.days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
         $mdDateLocaleProvider.shortDays = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
-    })
-//     .filter('reverse', function() {
-//     return function(items) {
-//         return items.slice().reverse();
-//     };
-// });
+    });
+
