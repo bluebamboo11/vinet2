@@ -1,10 +1,15 @@
 
 .container {
+    background-color: white;
+    position: relative;
+    min-height: 600px;
+    height: calc( 100% - 60px);
     width: 100%;
     margin: 0 auto;
     max-width: 1200px;
     min-width: 960px;
-    padding: 40px 40px;
+    padding-left: 20px;
+    padding-top: 60px;
     font: 14px/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
@@ -56,6 +61,7 @@ body {
 }
 
 .main-nv {
+    height: 80%;
     position: absolute;
     left: 25%;
     display: inline-block;
@@ -153,7 +159,7 @@ md-input-container {
 }
 
 .tb-hd {
-    height: 500px;
+    height: 80%;
     width: 100%;
 }
 
