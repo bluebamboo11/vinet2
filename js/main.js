@@ -12,6 +12,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
     .controller('AppCtrl', function ($scope, $http, $mdDialog, $mdToast) {
         $scope.dateSearch = new Date();
         $scope.data = [];
+        $scope.blackLst = false;
         $scope.maDonHang = '';
         $scope.index = 0;
         $scope.lstNV = [{name: 'Tất cả'}];
@@ -32,6 +33,12 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             formatDate: function (date) {
                 var m = moment(date);
                 return m.isValid() ? m.format('DD / MM / YYYY') : '';
+            }
+        };
+        $scope.dateLocaleMonth = {
+            formatDate: function (date) {
+                var m = moment(date);
+                return m.isValid() ? m.format('MM / YYYY') : '';
             }
         };
         $scope.options = {
@@ -94,35 +101,103 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
 
             });
         };
-        $scope.upHd = function (file) {
-            Papa.parse(file, {
-                header: true,
-                complete: function (results, file) {
-                    for (var i = 0; i < results.data.length; i++) {
-                        if (results.data[i]['Tracking Code'] && results.data[i]['Shipping Phone Number']) {
-                            database.ref('employees/Tất cả/order/' + results.data[i]['Tracking Code'] + '/phone')
-                                .set(results.data[i]['Shipping Phone Number']);
-                            for (var j = 1; j < $scope.lstNV.length; j++) {
-                                updatePhone($scope.lstNV[j].name, results.data[i]['Shipping Phone Number'], results.data[i]['Tracking Code']);
+        $scope.upHd = function (file, ev) {
+            var confirm = $mdDialog.confirm()
+                .parent(angular.element(document.body))
+                .title('Tải Lên file đơn hàng')
+                .textContent('Xác nhân tải lên file ' + file.name)
+                .targetEvent(ev)
+                .ok('Xác nhận')
+                .cancel('Hủy');
+
+            $mdDialog.show(confirm).then(function () {
+                Papa.parse(file, {
+                    header: true,
+                    complete: function (results, file) {
+                        var show = true;
+                        for (var i = 0; i < results.data.length; i++) {
+                            if (results.data[i]['Tracking Code'] && results.data[i]['Shipping Phone Number']) {
+                                database.ref('employees/Tất cả/order/' + results.data[i]['Tracking Code'] + '/phone')
+                                    .set(results.data[i]['Shipping Phone Number']).then(function (value) {
+                                    if (show) {
+                                        $mdToast.show(
+                                            $mdToast.simple()
+                                                .textContent('Tải file thành công')
+                                                .position('top left')
+                                                .hideDelay(3000)
+                                        );
+                                    }
+                                    show = false;
+                                }).catch(function (value) {
+                                    if (show) {
+                                        show = false;
+                                        $mdToast.show({
+                                            hideDelay: 3000,
+                                            position: 'top left',
+                                            template: '<md-toast><span style="color: red ">Tải file không thành công</span> </md-toast>'
+                                        })
+                                    }
+                                });
+                                ;
+                                for (var j = 1; j < $scope.lstNV.length; j++) {
+                                    if (results.data[i]['Tracking Code']) {
+                                        updatePhone($scope.lstNV[j].name, results.data[i]['Shipping Phone Number'], results.data[i]['Tracking Code']);
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+
+        };
+        $scope.upBlackLst = function (file, ev) {
+            var confirm = $mdDialog.confirm()
+                .parent(angular.element(document.body))
+                .title('Tải Lên file khách hàng đen')
+                .textContent('Xác nhân tải lên file ' + file.name)
+                .targetEvent(ev)
+                .ok('Xác nhận')
+                .cancel('Hủy');
+
+            $mdDialog.show(confirm).then(function () {
+                Papa.parse(file, {
+                    header: true,
+                    complete: function (results, file) {
+                        var show = true;
+                        for (var i = 0; i < results.data.length; i++) {
+                            if (results.data[i]['Shipping Phone Number']) {
+                                database.ref('black lst/' + results.data[i]['Shipping Phone Number'])
+                                    .set('').then(function (value) {
+                                    if (show) {
+                                        $mdToast.show(
+                                            $mdToast.simple()
+                                                .textContent('Tải file thành công')
+                                                .position('top left')
+                                                .hideDelay(3000)
+                                        );
+                                    }
+                                    show = false;
+                                }).catch(function (value) {
+                                    if (show) {
+                                        show = false;
+                                        $mdToast.show(
+                                            $mdToast.show({
+                                                hideDelay: 3000,
+                                                position: 'top left',
+                                                template: '<md-toast><span style="color: red ">Tải file không thành công</span> </md-toast>'
+                                            })
+                                        );
+                                    }
+                                });
 
                             }
                         }
                     }
-                }
-            });
-        };
-        $scope.upBlackLst = function (file) {
-            Papa.parse(file, {
-                header: true,
-                complete: function (results, file) {
-                    for (var i = 0; i < results.data.length; i++) {
-                        if (results.data[i]['Shipping Phone Number']) {
-                            database.ref('black lst/' + results.data[i]['Shipping Phone Number'])
-                                .set('');
+                });
+            }, function () {
 
-                        }
-                    }
-                }
             });
         };
         $scope.selectNv = function (index) {
@@ -165,7 +240,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         $scope.addHD = function (ev) {
             $scope.maDonHang = $scope.maDonHang.toUpperCase();
             database.ref('employees/Tất cả/order/' + $scope.maDonHang).once('value').then(function (snapshot) {
-                if (snapshot.val()) {
+                if (snapshot.val() && snapshot.val().date) {
                     $mdDialog.show(
                         $mdDialog.alert()
                             .parent(angular.element(document.body))
@@ -186,6 +261,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             if ($scope.searchKey) {
                 database.ref('employees/Tất cả/order/' + $scope.searchKey).once('value').then(function (snapshot) {
                     if (snapshot.val()) {
+                        if(snapshot.val().nv){
                         $mdDialog.show(
                             $mdDialog.alert()
                                 .parent(angular.element(document.body))
@@ -195,7 +271,17 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                                 .ok('Ok')
                                 .targetEvent(ev)
                         );
-
+                        }else {
+                            $mdDialog.show(
+                                $mdDialog.alert()
+                                    .parent(angular.element(document.body))
+                                    .clickOutsideToClose(true)
+                                    .title('Đơn hàng : ' + snapshot.key)
+                                    .textContent('Đơn hàng chưa được nhân viên nào xử lý')
+                                    .ok('Ok')
+                                    .targetEvent(ev)
+                            );
+                        }
                     }
                     else {
                         $mdDialog.show(
@@ -224,6 +310,24 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             }
             getListHD($scope.lstNV[$scope.index].name);
         };
+        $scope.checkBlackLst = function () {
+            if ($scope.blackLst) {
+                $scope.dataClone = angular.copy($scope.data);
+                $scope.data = [];
+                for (var i = 0; i < blackLst.length; i++) {
+                    for (var j = 0; j < $scope.dataClone.length; j++) {
+                        if ($scope.dataClone[j].phone === blackLst[i]) {
+                            $scope.data.push($scope.dataClone[j]);
+                        }
+
+                    }
+                }
+                $scope.options.paging.count = $scope.data.length;
+            } else {
+                $scope.data = angular.copy($scope.dataClone);
+                $scope.options.paging.count = $scope.data.length;
+            }
+        };
 
         function getBlackLst() {
             database.ref('black lst').on('child_added', function (data) {
@@ -233,7 +337,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
 
         function updatePhone(name, phone, code) {
             database.ref('employees/' + name + '/order/' + code).once('value').then(function (snapshot) {
-                if (snapshot) {
+                if (snapshot.val()) {
                     database.ref('employees/' + name + '/order/' + snapshot.key + '/phone')
                         .set(phone)
                 }
@@ -245,13 +349,13 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 var donHang = angular.copy($scope.maDonHang);
                 $scope.maDonHang = '';
                 if ($scope.maDonHang !== 'Tất Cả') {
-                    database.ref('employees/' + $scope.lstNV[$scope.index].name + '/order/' + donHang).set({
+                    database.ref('employees/' + $scope.lstNV[$scope.index].name + '/order/' + donHang).update({
                         date: moment(new Date()).format('DD / MM / YYYY - HH:mm '),
                         day: moment(new Date()).format('DD / MM / YYYY'),
                         month: moment(new Date()).format('MM / YYYY')
                     })
                 }
-                database.ref('employees/Tất cả/order/' + donHang).set({
+                database.ref('employees/Tất cả/order/' + donHang).update({
                     date: moment(new Date()).format('DD / MM / YYYY - HH:mm '),
                     day: moment(new Date()).format('DD / MM / YYYY'),
                     month: moment(new Date()).format('MM / YYYY'),
@@ -296,12 +400,32 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             }
             removeLis.on('child_added', function (data) {
                 $scope.$apply(function () {
-                    $scope.data.unshift({
-                        code: data.key,
-                        date: data.val().date,
-                        phone: data.val().phone,
-                        nv: data.val().nv
-                    });
+                    if ($scope.blackLst) {
+                        $scope.dataClone.unshift({
+                            code: data.key,
+                            date: data.val().date,
+                            phone: data.val().phone,
+                            nv: data.val().nv
+                        });
+                        for (var i = 0; i < blackLst.length; i++) {
+                            if (data.val().phone === blackLst[i]) {
+                                $scope.data.unshift({
+                                    code: data.key,
+                                    date: data.val().date,
+                                    phone: data.val().phone,
+                                    nv: data.val().nv
+                                });
+                                break
+                            }
+                        }
+                    } else {
+                        $scope.data.unshift({
+                            code: data.key,
+                            date: data.val().date,
+                            phone: data.val().phone,
+                            nv: data.val().nv
+                        });
+                    }
                     $scope.options.paging.count = $scope.data.length;
                 });
             });

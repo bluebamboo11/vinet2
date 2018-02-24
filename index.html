@@ -61,7 +61,7 @@
                 </div>
                 <div class="date-l">
                     <md-datepicker ng-if="locDay=='month'" md-mode="month"  ng-disabled="!locDay||locDay=='all'"
-                                   ng-change="locHd()" ng-model="dateSearch" md-placeholder="Nhập ngày" md-date-locale="dateLocale"></md-datepicker>
+                                   ng-change="locHd()" ng-model="dateSearch" md-placeholder="Nhập ngày" md-date-locale="dateLocaleMonth"></md-datepicker>
                     <md-datepicker ng-if="!locDay||locDay=='all'||locDay=='day'"    ng-disabled="!locDay||locDay=='all'"
                                    ng-change="locHd()" ng-model="dateSearch" md-placeholder="Nhập ngày" md-date-locale="dateLocale"></md-datepicker>
                 </div>
@@ -73,14 +73,14 @@
         <div class="bot-bnt">
             <input type="file" style="display: none">
             <md-card class="l-k">
-                <md-checkbox>Lọc khách hàng đen</md-checkbox>
+                <md-checkbox ng-model="blackLst" class="md-primary" ng-change="checkBlackLst()" ng-class="">Lọc khách hàng đen</md-checkbox>
             </md-card>
-            <md-button ngf-select="upHd(file)" ng-model="file" ngf-accept="'.csv'" class="md-raised btn-nomal"
+            <md-button ngf-select="upHd(file,$event)" ng-model="file" ngf-accept="'.csv'" class="md-raised btn-nomal"
                        md-colors="{background: 'green'}">
                 <md-icon md-svg-src="img/ic_file_upload_black_24px.svg"></md-icon>
                 Tải lên đơn hàng
             </md-button>
-            <md-button ngf-select="upBlackLst(file)" ng-model="file" ngf-accept="'.csv'" md-colors="{background: 'blue-grey'}"
+            <md-button ngf-select="upBlackLst(file,$event)" ng-model="file" ngf-accept="'.csv'" md-colors="{background: 'blue-grey'}"
                        class="md-raised btn-nomal">
                 <md-icon md-svg-src="img/ic_file_upload_black_24px.svg"></md-icon>
                 Tải lên KH đen

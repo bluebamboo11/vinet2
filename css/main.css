@@ -1,9 +1,27 @@
+::-webkit-scrollbar {
+    width: 5px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
 
 .container {
     background-color: white;
     position: relative;
     min-height: 600px;
-    height: calc( 100% - 60px);
+    height: calc(100% - 60px);
     width: 100%;
     margin: 0 auto;
     max-width: 1200px;
@@ -36,7 +54,7 @@
     line-height: 0.5;
 }
 
-md-dialog-actions >button {
+md-dialog-actions > button {
     width: 200px;
 }
 
@@ -67,6 +85,7 @@ body {
     display: inline-block;
     width: 75%;
 }
+
 .card-nv {
     font-size: 16px !important;
     text-transform: none !important;
@@ -76,16 +95,20 @@ body {
     width: 100%;
     height: 50px;
 }
-.card-click{
+
+.card-click {
     background-color: #009688 !important;
     color: white !important;
 }
+
 .card-nv:hover {
     background-color: rgba(0, 150, 136, 0.21) !important;
 }
-.card-click:hover{
+
+.card-click:hover {
     background-color: #009688 !important;
 }
+
 .btn-add-nv {
     width: 100%;
     height: 50px;
@@ -208,4 +231,16 @@ md-input-container {
 
 .l-k > md-checkbox {
     margin: 0 !important;
+}
+
+.dt .dt-cell, .dt .dt-header-cell {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    -o-user-select: text !important;
+    user-select: text !important;
+}
+.select-black{
+    background-color: #272e33;
+    color: white;
 }
