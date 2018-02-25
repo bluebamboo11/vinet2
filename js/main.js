@@ -10,17 +10,18 @@ var config = {
 firebase.initializeApp(config);
 angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
     .controller('AppCtrl', function ($scope, $http, $mdDialog, $mdToast) {
+        var all = 'Tất cả';
         $scope.dateSearch = new Date();
         $scope.data = [];
         $scope.blackLst = false;
         $scope.maDonHang = '';
         $scope.index = 0;
-        $scope.lstNV = [{name: 'Tất cả'}];
+        $scope.lstNV = [{name: all}];
         $scope.searchKey = '';
         $scope.locDay = 'month';
         var blackLst = [];
         var database = firebase.database();
-        getListHD('Tất cả');
+        getListHD(all);
         getBlackLst();
         var removeLis;
         var commentsRef = database.ref('nv');
@@ -101,56 +102,37 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
 
             });
         };
+        var show = true;
         $scope.upHd = function (file, ev) {
-            var confirm = $mdDialog.confirm()
-                .parent(angular.element(document.body))
-                .title('Tải Lên file đơn hàng')
-                .textContent('Xác nhân tải lên file ' + file.name)
-                .targetEvent(ev)
-                .ok('Xác nhận')
-                .cancel('Hủy');
+            if (file) {
+                var confirm = $mdDialog.confirm()
+                    .parent(angular.element(document.body))
+                    .title('Tải Lên file đơn hàng')
+                    .textContent('Xác nhân tải lên file ' + file.name)
+                    .targetEvent(ev)
+                    .ok('Xác nhận')
+                    .cancel('Hủy');
 
-            $mdDialog.show(confirm).then(function () {
-                Papa.parse(file, {
-                    header: true,
-                    complete: function (results, file) {
-                        var show = true;
-                        for (var i = 0; i < results.data.length; i++) {
-                            if (results.data[i]['Tracking Code'] && results.data[i]['Shipping Phone Number']) {
-                                database.ref('employees/Tất cả/order/' + results.data[i]['Tracking Code'] + '/phone')
-                                    .set(results.data[i]['Shipping Phone Number']).then(function (value) {
-                                    if (show) {
-                                        $mdToast.show(
-                                            $mdToast.simple()
-                                                .textContent('Tải file thành công')
-                                                .position('top left')
-                                                .hideDelay(3000)
-                                        );
-                                    }
-                                    show = false;
-                                }).catch(function (value) {
-                                    if (show) {
-                                        show = false;
-                                        $mdToast.show({
-                                            hideDelay: 3000,
-                                            position: 'top left',
-                                            template: '<md-toast><span style="color: red ">Tải file không thành công</span> </md-toast>'
-                                        })
-                                    }
-                                });
-                                ;
-                                for (var j = 1; j < $scope.lstNV.length; j++) {
-                                    if (results.data[i]['Tracking Code']) {
-                                        updatePhone($scope.lstNV[j].name, results.data[i]['Shipping Phone Number'], results.data[i]['Tracking Code']);
-                                    }
+                $mdDialog.show(confirm).then(function () {
+                    Papa.parse(file, {
+                        header: true,
+                        complete: function (results, file) {
+                            show = true;
+                            for (var i = 0; i < results.data.length; i++) {
+                                if (results.data[i]['Tracking Code'] && results.data[i]['Shipping Phone Number']) {
+                                    setDataAll(results.data[i]['Shipping Phone Number'], results.data[i]['Tracking Code']);
+                                    for (var j = 1; j < $scope.lstNV.length; j++) {
+                                        if (results.data[i]['Tracking Code']) {
+                                            updatePhone($scope.lstNV[j].name, results.data[i]['Shipping Phone Number'], results.data[i]['Tracking Code']);
+                                        }
 
+                                    }
                                 }
                             }
                         }
-                    }
+                    });
                 });
-            });
-
+            }
         };
         $scope.upBlackLst = function (file, ev) {
             var confirm = $mdDialog.confirm()
@@ -261,17 +243,17 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             if ($scope.searchKey) {
                 database.ref('employees/Tất cả/order/' + $scope.searchKey).once('value').then(function (snapshot) {
                     if (snapshot.val()) {
-                        if(snapshot.val().nv){
-                        $mdDialog.show(
-                            $mdDialog.alert()
-                                .parent(angular.element(document.body))
-                                .clickOutsideToClose(true)
-                                .title('Đơn hàng : ' + snapshot.key)
-                                .textContent('Nhân viên : ' + snapshot.val().nv + ' -- Thời gian : ' + snapshot.val().date)
-                                .ok('Ok')
-                                .targetEvent(ev)
-                        );
-                        }else {
+                        if (snapshot.val().nv) {
+                            $mdDialog.show(
+                                $mdDialog.alert()
+                                    .parent(angular.element(document.body))
+                                    .clickOutsideToClose(true)
+                                    .title('Đơn hàng : ' + snapshot.key)
+                                    .textContent('Nhân viên : ' + snapshot.val().nv + ' -- Thời gian : ' + snapshot.val().date)
+                                    .ok('Ok')
+                                    .targetEvent(ev)
+                            );
+                        } else {
                             $mdDialog.show(
                                 $mdDialog.alert()
                                     .parent(angular.element(document.body))
@@ -329,6 +311,41 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             }
         };
 
+        function setDataAll(phone, code) {
+            database.ref('employees/' + all + '/order/' + code).once('value').then(function (snapshot) {
+                if (!snapshot.val()) {
+                    setTotal(all);
+                }
+                database.ref('employees/Tất cả/order/' + code + '/phone')
+                    .set(phone).then(function (value) {
+                    if (show) {
+                        $mdToast.show(
+                            $mdToast.simple()
+                                .textContent('Tải file thành công')
+                                .position('top left')
+                                .hideDelay(3000)
+                        );
+                    }
+                    show = false;
+                }).catch(function (value) {
+                    if (show) {
+                        show = false;
+                        $mdToast.show({
+                            hideDelay: 3000,
+                            position: 'top left',
+                            template: '<md-toast><span style="color: red ">Tải file không thành công</span> </md-toast>'
+                        })
+                    }
+                });
+            });
+        }
+
+        function setTotal(code) {
+            database.ref('employees/' + code + '/total').transaction(function (post) {
+                return (post || 0) + 1;
+            });
+        }
+
         function getBlackLst() {
             database.ref('black lst').on('child_added', function (data) {
                 blackLst.push(data.key);
@@ -348,7 +365,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             if ($scope.maDonHang) {
                 var donHang = angular.copy($scope.maDonHang);
                 $scope.maDonHang = '';
-                if ($scope.maDonHang !== 'Tất Cả') {
+                if ($scope.maDonHang !== all) {
                     database.ref('employees/' + $scope.lstNV[$scope.index].name + '/order/' + donHang).update({
                         date: moment(new Date()).format('DD / MM / YYYY - HH:mm '),
                         day: moment(new Date()).format('DD / MM / YYYY'),
@@ -361,6 +378,8 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                     month: moment(new Date()).format('MM / YYYY'),
                     nv: $scope.lstNV[$scope.index].name
                 }).then(function () {
+                    setTotal($scope.lstNV[$scope.index].name);
+                    setTotal(all);
                     $mdToast.show({
                         hideDelay: 2000,
                         position: 'top left',
