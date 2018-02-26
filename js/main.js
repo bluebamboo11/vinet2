@@ -7,10 +7,13 @@ var config = {
     storageBucket: "",
     messagingSenderId: "233967204421"
 };
+var maxDh = 100;
 firebase.initializeApp(config);
 angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
     .controller('AppCtrl', function ($scope, $http, $mdDialog, $mdToast) {
         var all = 'Tất cả';
+        $scope.partner = all;
+        $scope.lstPartner = [all];
         $scope.dateSearch = new Date();
         $scope.data = [];
         $scope.blackLst = false;
@@ -23,7 +26,9 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         var database = firebase.database();
         getListHD(all);
         getBlackLst();
+        getPartner();
         var removeLis;
+        getPartner();
         var commentsRef = database.ref('nv');
         commentsRef.on('child_added', function (data) {
             $scope.$apply(function () {
@@ -42,6 +47,42 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 return m.isValid() ? m.format('MM / YYYY') : '';
             }
         };
+        $scope.addPartner = function (ev) {
+            var confirm = $mdDialog.prompt()
+                .parent(angular.element(document.body))
+                .title('Thêm nhân đối tác')
+                .textContent('Nhập tên đối tác.')
+                .placeholder('Nhập...')
+                .targetEvent(ev)
+                .required(true)
+                .ok('Xong!')
+                .cancel('Hủy');
+
+            $mdDialog.show(confirm).then(function (result) {
+                database.ref('partner/' + result).once('value').then(function (snapshot) {
+                    if (!snapshot.val()) {
+                        database.ref('partner/' + result).set({
+                            name: result
+                        }).then(function (value) {
+                            $mdToast.show(
+                                $mdToast.simple()
+                                    .textContent('Thêm đối tác thành công')
+                                    .position('top left')
+                                    .hideDelay(3000)
+                            );
+                        });
+                    } else {
+                        $mdToast.show(
+                            $mdToast.simple()
+                                .textContent('Tên đối tác đã tồn tại')
+                                .position('top left')
+                                .hideDelay(3000)
+                        );
+                    }
+                });
+
+            });
+        };
         $scope.options = {
             emptyMessage: 'Không có đơn hàng ',
             rowHeight: 50,
@@ -57,8 +98,11 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 name: "Số điện thoại",
                 prop: "phone"
             }, {
-                name: "Nhân Viên",
+                name: "Nhân viên",
                 prop: "nv"
+            },{
+                name:"Đối tác",
+                prop:"partner"
             }],
             columnMode: 'force',
             paging: {
@@ -119,11 +163,11 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                         complete: function (results, file) {
                             show = true;
                             for (var i = 0; i < results.data.length; i++) {
-                                if (results.data[i]['Tracking Code'] && results.data[i]['Shipping Phone Number']) {
-                                    setDataAll(results.data[i]['Shipping Phone Number'], results.data[i]['Tracking Code']);
+                                if (results.data[i]['Order Number'] && results.data[i]['Shipping Phone Number'] && !isNaN(results.data[i]['Shipping Phone Number'])) {
+                                    setDataAll(results.data[i]['Shipping Phone Number'], results.data[i]['Order Number']);
                                     for (var j = 1; j < $scope.lstNV.length; j++) {
-                                        if (results.data[i]['Tracking Code']) {
-                                            updatePhone($scope.lstNV[j].name, results.data[i]['Shipping Phone Number'], results.data[i]['Tracking Code']);
+                                        if (results.data[i]['Order Number'] && !isNaN(results.data[i]['Shipping Phone Number'])) {
+                                            updatePhone('employees/', $scope.lstNV[j].name, results.data[i]['Shipping Phone Number'], results.data[i]['Order Number']);
                                         }
 
                                     }
@@ -149,39 +193,52 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                     complete: function (results, file) {
                         var show = true;
                         for (var i = 0; i < results.data.length; i++) {
-                            if (results.data[i]['Shipping Phone Number']) {
-                                database.ref('black lst/' + results.data[i]['Shipping Phone Number'])
-                                    .set('').then(function (value) {
-                                    if (show) {
-                                        $mdToast.show(
-                                            $mdToast.simple()
-                                                .textContent('Tải file thành công')
-                                                .position('top left')
-                                                .hideDelay(3000)
-                                        );
-                                    }
-                                    show = false;
-                                }).catch(function (value) {
-                                    if (show) {
-                                        show = false;
-                                        $mdToast.show(
-                                            $mdToast.show({
-                                                hideDelay: 3000,
-                                                position: 'top left',
-                                                template: '<md-toast><span style="color: red ">Tải file không thành công</span> </md-toast>'
-                                            })
-                                        );
-                                    }
-                                });
+                            // if (results.data[i]['Shipping Phone Number']) {
+                            //     database.ref('black lst/' + results.data[i]['Shipping Phone Number'])
+                            //         .set('').then(function (value) {
+                            //         if (show) {
+                            //             $mdToast.show(
+                            //                 $mdToast.simple()
+                            //                     .textContent('Tải file thành công')
+                            //                     .position('top left')
+                            //                     .hideDelay(3000)
+                            //             );
+                            //         }
+                            //         show = false;
+                            //     }).catch(function (value) {
+                            //         if (show) {
+                            //             show = false;
+                            //             $mdToast.show(
+                            //                 $mdToast.show({
+                            //                     hideDelay: 3000,
+                            //                     position: 'top left',
+                            //                     template: '<md-toast><span style="color: red ">Tải file không thành công</span> </md-toast>'
+                            //                 })
+                            //             );
+                            //         }
+                            //     });
+                            //
+                            // }
+                            for (var j = 0; j < $scope.lstNV.length; j++) {
+                                if (results.data[i]['Order Number'] && !isNaN(results.data[i]['Shipping Phone Number'])) {
+                                    updateBlackLst($scope.lstNV[j].name, results.data[i]['Shipping Phone Number'], results.data[i]['Order Number']);
+                                }
 
                             }
                         }
                     }
                 });
-            }, function () {
-
             });
         };
+
+        function updateBlackLst(name, phone, code) {
+            database.ref('employees/' + name + '/order/').orderByChild('phone').equalTo(phone).once('value').then(function (snapshot) {
+                if (snapshot.val()) {
+                    database.ref('blackLst/' + name + '/order/' + code).set(snapshot.val()[code]);
+                }
+            })
+        };
+
         $scope.selectNv = function (index) {
             if ($scope.index !== index) {
                 $scope.options.paging.count = 0;
@@ -198,6 +255,9 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                     }, {
                         name: "Nhân Viên",
                         prop: "nv"
+                    },{
+                        name:"Đối tác",
+                        prop:"partner"
                     }]
                 }
                 else {
@@ -208,9 +268,9 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                         }, {
                             name: "Ngày",
                             prop: "date"
-                        }, {
-                            name: "Số điện thoại",
-                            prop: "phone"
+                        },{
+                            name:"Đối tác",
+                            prop:"partner"
                         }]
                     }
                 }
@@ -283,33 +343,25 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         $scope.locHd = function () {
             $scope.options.paging.count = 0;
             $scope.data = [];
-            if ($scope.locDay === 'day') {
-                $scope.modeDate = 'day';
-
-            }
-            if ($scope.locDay === 'month') {
-
-            }
+            getListHD($scope.lstNV[$scope.index].name);
+        };
+        $scope.selectPartner = function () {
+            $scope.options.paging.count = 0;
+            $scope.data = [];
             getListHD($scope.lstNV[$scope.index].name);
         };
         $scope.checkBlackLst = function () {
-            if ($scope.blackLst) {
-                $scope.dataClone = angular.copy($scope.data);
-                $scope.data = [];
-                for (var i = 0; i < blackLst.length; i++) {
-                    for (var j = 0; j < $scope.dataClone.length; j++) {
-                        if ($scope.dataClone[j].phone === blackLst[i]) {
-                            $scope.data.push($scope.dataClone[j]);
-                        }
+            $scope.data=[];
 
-                    }
-                }
-                $scope.options.paging.count = $scope.data.length;
-            } else {
-                $scope.data = angular.copy($scope.dataClone);
-                $scope.options.paging.count = $scope.data.length;
-            }
         };
+
+        function getPartner() {
+            database.ref('partner').on('child_added', function (data) {
+                $scope.$apply(function () {
+                    $scope.lstPartner.push(data.key)
+                });
+            });
+        }
 
         function setDataAll(phone, code) {
             database.ref('employees/' + all + '/order/' + code).once('value').then(function (snapshot) {
@@ -352,10 +404,10 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             })
         }
 
-        function updatePhone(name, phone, code) {
-            database.ref('employees/' + name + '/order/' + code).once('value').then(function (snapshot) {
+        function updatePhone(ref, name, phone, code) {
+            database.ref(ref + name + '/order/' + code).once('value').then(function (snapshot) {
                 if (snapshot.val()) {
-                    database.ref('employees/' + name + '/order/' + snapshot.key + '/phone')
+                    database.ref(ref + name + '/order/' + snapshot.key + '/phone')
                         .set(phone)
                 }
             });
@@ -365,33 +417,33 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             if ($scope.maDonHang) {
                 var donHang = angular.copy($scope.maDonHang);
                 $scope.maDonHang = '';
+                var dh = {};
+                dh.partner=$scope.partner;
+                dh['date'] = moment(new Date()).format('DD / MM / YYYY - HH:mm ');
+                dh['day'] = moment(new Date()).format('DD / MM / YYYY');
+                dh['month'] = moment(new Date()).format('MM / YYYY');
+                dh[$scope.partner + 'day'] = moment(new Date()).format('DD / MM / YYYY');
+                dh[$scope.partner + 'month'] = moment(new Date()).format('MM / YYYY');
                 if ($scope.maDonHang !== all) {
-                    database.ref('employees/' + $scope.lstNV[$scope.index].name + '/order/' + donHang).update({
-                        date: moment(new Date()).format('DD / MM / YYYY - HH:mm '),
-                        day: moment(new Date()).format('DD / MM / YYYY'),
-                        month: moment(new Date()).format('MM / YYYY')
-                    })
+                    database.ref('employees/' + $scope.lstNV[$scope.index].name + '/order/' + donHang).update(dh);
+                    dh['nv'] = $scope.lstNV[$scope.index].name;
+                    database.ref('employees/Tất cả/order/' + donHang).update(dh).then(function () {
+                        setTotal($scope.lstNV[$scope.index].name);
+                        setTotal(all);
+                        $mdToast.show({
+                            hideDelay: 2000,
+                            position: 'top left',
+                            template: '<md-toast>Đã thêm đơn hàng&nbsp<span style="color: green ;flex: none">' + donHang + '</span>&nbspthành công </md-toast>'
+                        });
+                    }).catch(function (error) {
+                        $mdToast.show({
+                            hideDelay: 2000,
+                            position: 'top left',
+                            template: '<md-toast><span style="color: green ;flex: none">' + donHang + '</span><span style="color: darkred ;flex: none">&nbspThêm thất bại </span></md-toast>'
+                        });
+
+                    });
                 }
-                database.ref('employees/Tất cả/order/' + donHang).update({
-                    date: moment(new Date()).format('DD / MM / YYYY - HH:mm '),
-                    day: moment(new Date()).format('DD / MM / YYYY'),
-                    month: moment(new Date()).format('MM / YYYY'),
-                    nv: $scope.lstNV[$scope.index].name
-                }).then(function () {
-                    setTotal($scope.lstNV[$scope.index].name);
-                    setTotal(all);
-                    $mdToast.show({
-                        hideDelay: 2000,
-                        position: 'top left',
-                        template: '<md-toast>Đã thêm đơn hàng&nbsp<span style="color: green ;flex: none">' + donHang + '</span>&nbspthành công </md-toast>'
-                    });
-                }).catch(function (error) {
-                    $mdToast.show({
-                        hideDelay: 2000,
-                        position: 'top left',
-                        template: '<md-toast><span style="color: green ;flex: none">' + donHang + '</span><span style="color: darkred ;flex: none">&nbspThêm thất bại </span></md-toast>'
-                    });
-                });
             } else {
                 $mdToast.show(
                     $mdToast.simple()
@@ -403,48 +455,49 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         }
 
         function getListHD(code) {
+            var ref = '';
+            if (!$scope.blackLst) {
+                ref = 'employees/';
+            } else {
+                ref = 'blackLst/';
+
+            }
             if (removeLis) {
                 removeLis.off();
             }
-            if ($scope.locDay && $scope.locDay !== 'all') {
+            if ($scope.locDay === 'all' && $scope.partner === all) {
+                removeLis = database.ref(ref + code + '/order').limitToLast(maxDh);
+            }
+            if ($scope.locDay !== 'all' && $scope.partner === all) {
                 var dateSearch = '';
                 if ($scope.locDay === 'day') {
                     dateSearch = moment($scope.dateSearch).format('DD / MM / YYYY');
                 } else {
                     dateSearch = moment($scope.dateSearch).format('MM / YYYY');
                 }
-                removeLis = database.ref('employees/' + code + '/order').orderByChild($scope.locDay).equalTo(dateSearch);
-            } else {
-                removeLis = database.ref('employees/' + code + '/order');
+                removeLis = database.ref(ref + code + '/order').limitToLast(maxDh).orderByChild($scope.locDay).equalTo(dateSearch);
+            }
+            if ($scope.locDay === 'all' && $scope.partner !== all) {
+                removeLis = database.ref(ref + code + '/order').limitToLast(maxDh).orderByChild($scope.partner + 'date');
+            }
+            if ($scope.locDay !== 'all' && $scope.partner !== all) {
+                var dateSearch = '';
+                if ($scope.locDay === 'day') {
+                    dateSearch = moment($scope.dateSearch).format('DD / MM / YYYY');
+                } else {
+                    dateSearch = moment($scope.dateSearch).format('MM / YYYY');
+                }
+                removeLis = database.ref(ref + code + '/order').limitToLast(maxDh).orderByChild($scope.partner + $scope.locDay).equalTo(dateSearch);
             }
             removeLis.on('child_added', function (data) {
                 $scope.$apply(function () {
-                    if ($scope.blackLst) {
-                        $scope.dataClone.unshift({
-                            code: data.key,
-                            date: data.val().date,
-                            phone: data.val().phone,
-                            nv: data.val().nv
-                        });
-                        for (var i = 0; i < blackLst.length; i++) {
-                            if (data.val().phone === blackLst[i]) {
-                                $scope.data.unshift({
-                                    code: data.key,
-                                    date: data.val().date,
-                                    phone: data.val().phone,
-                                    nv: data.val().nv
-                                });
-                                break
-                            }
-                        }
-                    } else {
-                        $scope.data.unshift({
-                            code: data.key,
-                            date: data.val().date,
-                            phone: data.val().phone,
-                            nv: data.val().nv
-                        });
-                    }
+                    $scope.data.unshift({
+                        code: data.key,
+                        date: data.val().date,
+                        phone: data.val().phone,
+                        nv: data.val().nv,
+                        partner:data.val().partner
+                    });
                     $scope.options.paging.count = $scope.data.length;
                 });
             });
