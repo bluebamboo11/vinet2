@@ -5,7 +5,7 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <link rel="icon" sizes="192x192" href="favicon.ico">
     <title>Quản lý đơn hàng</title>
-    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/main.css?v=1">
     <link rel="stylesheet" href="css/angular-material.min.css">
     <link rel="stylesheet" href="css/dataTable.css">
     <link rel="stylesheet" href="css/material.css">
@@ -17,12 +17,46 @@
     <script src="js/moment.min.js"></script>
     <script src="js/dataTable.min.js"></script>
     <script src="js/ng-file-upload.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/4.10.1/firebase.js"></script>
-    <!--<script src="/__/firebase/4.10.1/firebase.js"></script>-->
-    <script src="js/main.js"></script>
+    <script src="js/FileSaver.min.js"></script>
+    <script src="js/angular-messages.min.js"></script>
+    <!--<script src="https://www.gstatic.com/firebasejs/4.10.1/firebase.js"></script>-->
+    <script src="/__/firebase/4.10.1/firebase.js"></script>
+    <script src="js/main.js?v=1"></script>
 </head>
-<body>
-<div ng-app="MyApp" ng-controller="AppCtrl" class="container">
+<body ng-app="MyApp" ng-controller="AppCtrl">
+<div class="container" ng-show="isLogin">
+    <md-menu>
+        <md-button class="md-accent md-raised admin"  ng-click="$mdMenu.open($event)">
+           Quản trị
+        </md-button>
+        <md-menu-content width="4">
+            <md-menu-item >
+                <md-button ng-click="removeNV($event)">
+                    Xóa Nhân viên
+                </md-button>
+            </md-menu-item>
+            <md-menu-item >
+                <md-button ng-click="announceClick($index)">
+                    Xóa đơn hàng theo tháng
+                </md-button>
+            </md-menu-item>
+            <md-menu-item >
+                <md-button ng-click="removeHDCode($event)">
+                    Xóa đơn hàng theo mã
+                </md-button>
+            </md-menu-item>
+            <md-menu-item >
+                <md-button ng-click="removeHDCode($event)">
+                    Xóa đối tác
+                </md-button>
+            </md-menu-item>
+            <md-menu-item >
+                <md-button ng-click="changePass($event)">
+                   Đổi mật khẩu
+                </md-button>
+            </md-menu-item>
+        </md-menu-content>
+    </md-menu>
     <md-card class="lst-nv">
         <md-button class="md-raised md-primary btn-add-nv" ng-click="addNewNV($event)">
             <md-icon md-svg-src="img/ic_person_add_black_24px.svg" style="padding-right: 10px!important;"></md-icon>
@@ -47,18 +81,21 @@
                                    ng-disabled="index==0||partner=='Tất cả'" autocomplete="off">
                         </md-input-container>
                     </div>
-                    <md-button type="submit" class="md-raised button-add md-primary" ng-disabled="index==0||partner=='Tất cả'">Thêm
+                    <md-button type="submit" class="md-raised button-add md-primary"
+                               ng-disabled="index==0||partner=='Tất cả'">Thêm
                     </md-button>
 
                 </form>
                 <div class="partner">
                     <md-input-container flex="100">
                         <label>Đối tác</label>
-                        <md-select name="partner" ng-model="partner"  ng-change="selectPartner()" required>
+                        <md-select name="partner" ng-model="partner" ng-change="selectPartner()" required>
                             <md-option ng-repeat="partner in lstPartner" ng-value="partner">{{partner}}</md-option>
                         </md-select>
                     </md-input-container>
-                    <md-button class="md-raised md-primary " ng-click="addPartner($event)"> <md-icon md-svg-src="img/ic_add_white_24px.svg"></md-icon></md-button>
+                    <md-button class="md-raised md-primary " ng-click="addPartner($event)">
+                        <md-icon md-svg-src="img/ic_add_white_24px.svg"></md-icon>
+                    </md-button>
                 </div>
             </div>
             <div class="hd-main" style="color: #444">
@@ -92,7 +129,10 @@
         <div class="tb-hd">
             <dtable options="options" rows="data" class="material" on-page="paging(offset, size)"></dtable>
         </div>
-        <div class="chek-total"><md-button class="md-raised " ng-click="getTotal()"> {{total==0?'Tổng đơn hàng':'Tổng đơn hàng : '+total}}</md-button></div>
+        <div class="chek-total">
+            <md-button class="md-raised " ng-click="getTotal()"> {{total==0?'Tổng đơn hàng':'Tổng đơn hàng : '+total}}
+            </md-button>
+        </div>
         <div class="bot-bnt">
             <input type="file" style="display: none">
             <md-card class="l-k">
@@ -111,9 +151,42 @@
                 <md-icon md-svg-src="img/ic_file_upload_black_24px.svg"></md-icon>
                 Tải lên KH đen
             </md-button>
+            <md-button ng-disabled="disableExport" ng-click="exportOrder()" class="md-raised btn-nomal"
+                       md-colors="{background: 'green'}">
+                <md-icon md-svg-src="img/ic_file_download_white_24px.svg"></md-icon>
+                Tải xuống
+            </md-button>
+
         </div>
     </div>
 </div>
+<div class="login" ng-show="!isLogin">
+    <md-card class="box-login .md-whiteframe-18dp">
+        <md-progress-linear class="loading" ng-show="showLoad" md-mode="indeterminate"></md-progress-linear>
+        <md-card-title>
+            <md-card-title-text>
+                <span class="md-headline">Đăng nhập</span>
+                <span class="md-subhead">Chọn tài khoản và nhập mật khẩu</span>
+            </md-card-title-text>
+        </md-card-title>
+        <md-card-content>
+            <form name="userForm" ng-submit="login()">
+                <md-select name="user" required placeholder="Chọn tài khoản" ng-model="user" md-on-open="getNv()"
+                           style="width: 100%;">
+                    <md-option ng-value="user" ng-repeat="user in users">{{user}}</md-option>
+                </md-select>
+
+                <md-input-container>
+                    <label>Nhập mật khẩu</label>
+                    <input name = "pass" type="password" md-maxlength="30" required pass name="description" ng-model="pass">
+                    <div ng-messages="userForm.pass.$error">
+                        <div ng-message="pass">Mật khẩu chưa đúng</div>
+                    </div>
+                </md-input-container>
+                <md-button type="submit" class="md-raised md-primary btn-login">Đăng nhập</md-button>
+            </form>
+        </md-card-content>
+    </md-card>
 </div>
 </body>
 </html>

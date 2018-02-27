@@ -9,20 +9,26 @@ var config = {
 };
 var maxDh = 100;
 firebase.initializeApp(config);
-angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
+angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages'])
     .controller('AppCtrl', function ($scope, $http, $mdDialog, $mdToast) {
         var all = 'Tất cả';
+        var admin = 'Admin';
         $scope.total = 0;
         $scope.partner = all;
         $scope.lstPartner = [all];
         $scope.dateSearch = new Date();
         $scope.data = [];
         $scope.blackLst = false;
+        $scope.erorr = true;
         $scope.maDonHang = '';
         $scope.index = 0;
         $scope.lstNV = [{name: all}];
         $scope.searchKey = '';
         $scope.locDay = 'month';
+        $scope.users = null;
+        $scope.user = null;
+        $scope.pass = null;
+        $scope.isLogin = false;
         var blackLst = [];
         var database = firebase.database();
         getListHD(all);
@@ -35,6 +41,116 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 $scope.lstNV.push({name: data.key})
             });
         });
+        $scope.removeHDCode = function (ev) {
+            var confirm = $mdDialog.prompt()
+                .title('Xóa đơn hàng theo mã')
+                .textContent('Nhập mã đơn hàng cần xóa')
+                .placeholder('nhập ...')
+                .ariaLabel('Mã đơn hàng')
+                .targetEvent(ev)
+                .required(true)
+                .ok('Xóa')
+                .cancel('Hủy');
+            $mdDialog.show(confirm).then(function (result) {
+                show = true;
+                result = result.toUpperCase();
+                database.ref('employees/Tất cả/order/' + result).once('value').then(function (snapshot) {
+                    if (snapshot.val()) {
+                        for (var i = 0; i < $scope.lstNV.length; i++) {
+                            removeHd('employees/', $scope.lstNV[i].name, result);
+                            removeHd('blackLst/', $scope.lstNV[i].name, result);
+                        }
+                    } else {
+                        $mdDialog.show(
+                            $mdDialog.alert()
+                                .parent(angular.element(document.body))
+                                .clickOutsideToClose(true)
+                                .title('Tìm Đơn Hàng')
+                                .textContent('Đơn hàng không tồn tại')
+                                .ok('Ok')
+                                .targetEvent(ev)
+                        );
+                    }
+                })
+
+
+            });
+        };
+
+        function removeHd(black, name, code) {
+            database.ref(black + name + '/order/' + code).remove().then(function (value) {
+                if (show) {
+                    show = false;
+                    $mdToast.show(
+                        $mdToast.simple()
+                            .textContent('Xóa thành công')
+                            .position('top left')
+                            .hideDelay(3000)
+                    );
+                }
+            });
+        }
+
+        $scope.removeNV = function (ev) {
+            var confirm = $mdDialog.prompt()
+                .title('Xóa nhân viên')
+                .textContent('Nhập tên nhân viên cần xóa')
+                .placeholder('nhập ...')
+                .ariaLabel('Tên nhân viên')
+                .targetEvent(ev)
+                .required(true)
+                .ok('Xóa')
+                .cancel('Hủy');
+            $mdDialog.show(confirm).then(function (result) {
+                database.ref('nv/' + result).remove()
+                database.ref('employees/' + result).remove().then(function (value) {
+                    $scope.lstNV.splice($scope.lstNV.indexOf({name: result}), 1);
+                    $mdToast.show(
+                        $mdToast.simple()
+                            .textContent('Xóa thành công')
+                            .position('top left')
+                            .hideDelay(3000)
+                    );
+                });
+            });
+        };
+        $scope.login = function () {
+
+            if ($scope.user && $scope.pass) {
+                $scope.showLoad = true;
+                if ($scope.user === admin) {
+                    var commentsRef = database.ref('admin/pass');
+                    commentsRef.once('value').then(function (snapshot) {
+                        if (snapshot.val() == $scope.pass) {
+                            $scope.$apply(function () {
+                                $scope.isLogin = true;
+                            })
+                        } else {
+                            $scope.$apply(function () {
+                                $scope.userForm.pass.$error = {'pass': true};
+                                $scope.showLoad = false
+                            })
+
+                        }
+                    });
+                } else {
+                    var commentsRef = database.ref('nv/' + $scope.user + '/pass');
+                    commentsRef.once('value').then(function (snapshot) {
+                        if (snapshot.val() === $scope.pass) {
+                            $scope.$apply(function () {
+                                $scope.isLogin = true;
+                            })
+                        }
+                        else {
+                            $scope.$apply(function () {
+                                $scope.userForm.pass.$error.pass = true;
+                                $scope.showLoad = false
+                            })
+                        }
+                    });
+                }
+            }
+        };
         $scope.dateLocale = {
             formatDate: function (date) {
                 var m = moment(date);
@@ -46,6 +162,16 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 var m = moment(date);
                 return m.isValid() ? m.format('MM / YYYY') : '';
             }
+        };
+        $scope.getNv = function () {
+            var commentsRef = database.ref('nv');
+            return commentsRef.once('value').then(function (snapshot) {
+                var users = [admin];
+                for (key in snapshot.val()) {
+                    users.push(snapshot.val()[key].name);
+                }
+                $scope.users = $scope.users || users;
+            });
         };
         $scope.addPartner = function (ev) {
             var confirm = $mdDialog.prompt()
@@ -86,14 +212,16 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         $scope.options = {
             emptyMessage: 'Không có đơn hàng ',
             rowHeight: 50,
-            headerHeight: 50,
+            headerHeight: 40,
             footerHeight: 50,
             columns: [{
                 name: "Mã Đơn hàng",
-                prop: "code"
+                prop: "code",
+                width: 200
             }, {
                 name: "Ngày",
-                prop: "date"
+                prop: "date",
+                width: 200
             }, {
                 name: "Số điện thoại",
                 prop: "phone"
@@ -178,6 +306,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 });
             }
         };
+
         $scope.upBlackLst = function (file, ev) {
             var confirm = $mdDialog.confirm()
                 .parent(angular.element(document.body))
@@ -191,39 +320,23 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 Papa.parse(file, {
                     header: true,
                     complete: function (results, file) {
-                        var show = true;
+                        show = true;
                         for (var i = 0; i < results.data.length; i++) {
-                            // if (results.data[i]['Shipping Phone Number']) {
-                            //     database.ref('black lst/' + results.data[i]['Shipping Phone Number'])
-                            //         .set('').then(function (value) {
-                            //         if (show) {
-                            //             $mdToast.show(
-                            //                 $mdToast.simple()
-                            //                     .textContent('Tải file thành công')
-                            //                     .position('top left')
-                            //                     .hideDelay(3000)
-                            //             );
-                            //         }
-                            //         show = false;
-                            //     }).catch(function (value) {
-                            //         if (show) {
-                            //             show = false;
-                            //             $mdToast.show(
-                            //                 $mdToast.show({
-                            //                     hideDelay: 3000,
-                            //                     position: 'top left',
-                            //                     template: '<md-toast><span style="color: red ">Tải file không thành công</span> </md-toast>'
-                            //                 })
-                            //             );
-                            //         }
-                            //     });
-                            //
-                            // }
                             for (var j = 0; j < $scope.lstNV.length; j++) {
                                 if (results.data[i]['Order Number'] && !isNaN(results.data[i]['Shipping Phone Number'])) {
+                                    database.ref('phoneBlack/' + results.data[i]['Shipping Phone Number']).set('').then(function (value) {
+                                        if (show) {
+                                            show = false;
+                                            $mdToast.show(
+                                                $mdToast.simple()
+                                                    .textContent('Tải file thành công')
+                                                    .position('top left')
+                                                    .hideDelay(3000)
+                                            );
+                                        }
+                                    });
                                     updateBlackLst($scope.lstNV[j].name, results.data[i]['Shipping Phone Number'], results.data[i]['Order Number']);
                                 }
-
                             }
                         }
                     }
@@ -282,6 +395,10 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         };
         $scope.addHD = function (ev) {
             $scope.maDonHang = $scope.maDonHang.toUpperCase();
+            if ($scope.partner === 'lex') {
+                $scope.maDonHang = converLex($scope.maDonHang);
+            }
+            converLex($scope.maDonHang);
             $scope.maDonHang = convertString($scope.maDonHang);
             if (!($scope.maDonHang.indexOf(" ") > -1)) {
                 database.ref('employees/Tất cả/order/' + $scope.maDonHang).once('value').then(function (snapshot) {
@@ -321,7 +438,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                                     .parent(angular.element(document.body))
                                     .clickOutsideToClose(true)
                                     .title('Đơn hàng : ' + snapshot.key)
-                                    .textContent('Nhân viên : ' + snapshot.val().nv + ' -- Thời gian : ' + snapshot.val().date)
+                                    .textContent('Nhân viên : ' + snapshot.val().nv + ' -- Thời gian : ' + snapshot.val().date + '-- Đối tác : ' + snapshot.val().partner)
                                     .ok('Ok')
                                     .targetEvent(ev)
                             );
@@ -362,12 +479,9 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             $scope.data = [];
             getListHD($scope.lstNV[$scope.index].name);
         };
-        $scope.checkBlackLst = function () {
-            $scope.data = [];
-
-        };
-        $scope.getTotal = function () {
-            code = $scope.lstNV[$scope.index].name;
+        var dataExport;
+        $scope.getTotal = function (callback) {
+            var code = $scope.lstNV[$scope.index].name;
             var ref = '';
             if (!$scope.blackLst) {
                 ref = 'employees/';
@@ -403,11 +517,42 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 removeLis = database.ref(ref + code + '/order').orderByChild($scope.partner + $scope.locDay).equalTo(dateSearch);
             }
             removeLis.once('value').then(function (snapshot) {
+                if (callback) {
+                    callback(snapshot.val());
+                }
+                dataExport = snapshot.val();
                 $scope.$apply(function () {
                     $scope.total = Object.keys(snapshot.val()).length;
                 })
             });
         };
+        $scope.exportOrder = function () {
+            $scope.disableExport = true;
+            var dataExport = [];
+            $scope.getTotal(function (data) {
+                if ($scope.lstNV[$scope.index].name !== all) {
+                    for (key in data) {
+                        dataExport.push([key, data[key].date, $scope.lstNV[$scope.index].name, data[key].partner])
+                    }
+                } else {
+                    for (key in data) {
+                        dataExport.push([key, data[key].date, data[key].nv, data[key].partner])
+                    }
+                }
+                var csv = Papa.unparse({
+                    fields: ["Mã Đơn Hàng", "Thời gian", "Nhân viên", "Đối tác"],
+                    data: dataExport
+                }, {delimiter: ';'});
+                var blob = new Blob([csv], {type: "text/plain;charset=utf-8"});
+                saveAs(blob, "order.export.csv");
+                $scope.disableExport = false;
+            });
+
+        };
+
+        function converLex(code) {
+            return code.split('-')[1];
+        }
 
         function getPartner() {
             database.ref('partner').on('child_added', function (data) {
@@ -418,32 +563,44 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         }
 
         function setDataAll(phone, code) {
-            database.ref('employees/' + all + '/order/' + code).once('value').then(function (snapshot) {
-                if (!snapshot.val()) {
-                    setTotal(all);
+
+            database.ref('employees/Tất cả/order/' + code + '/phone')
+                .set(phone).then(function (value) {
+                if (checkBlackList(phone)) {
+                    database.ref('employees/Tất cả/order/' + code).once('value').then(function (snapshot) {
+                        if (snapshot.val()) {
+                            database.ref('blackLst/Tất cả/order/' + code).set(snapshot.val());
+                        }
+                    })
                 }
-                database.ref('employees/Tất cả/order/' + code + '/phone')
-                    .set(phone).then(function (value) {
-                    if (show) {
-                        $mdToast.show(
-                            $mdToast.simple()
-                                .textContent('Tải file thành công')
-                                .position('top left')
-                                .hideDelay(3000)
-                        );
-                    }
+                if (show) {
+                    $mdToast.show(
+                        $mdToast.simple()
+                            .textContent('Tải file thành công')
+                            .position('top left')
+                            .hideDelay(3000)
+                    );
+                }
+                show = false;
+            }).catch(function (value) {
+                if (show) {
                     show = false;
-                }).catch(function (value) {
-                    if (show) {
-                        show = false;
-                        $mdToast.show({
-                            hideDelay: 3000,
-                            position: 'top left',
-                            template: '<md-toast><span style="color: red ">Tải file không thành công</span> </md-toast>'
-                        })
-                    }
-                });
+                    $mdToast.show({
+                        hideDelay: 3000,
+                        position: 'top left',
+                        template: '<md-toast><span style="color: red ">Tải file không thành công</span> </md-toast>'
+                    })
+                }
             });
+
+        }
+
+        function checkBlackList(phone) {
+            for (var i = 0; i < blackLst.length; i++) {
+                if (phone === blackLst[i]) {
+                    return true;
+                }
+            }
         }
 
         function convertString(value) {
@@ -454,14 +611,9 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             return value.split('+').join('.');
         }
 
-        function setTotal(code) {
-            database.ref('employees/' + code + '/total').transaction(function (post) {
-                return (post || 0) + 1;
-            });
-        }
 
         function getBlackLst() {
-            database.ref('black lst').on('child_added', function (data) {
+            database.ref('phoneBlack').on('child_added', function (data) {
                 blackLst.push(data.key);
             })
         }
@@ -470,7 +622,15 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             database.ref(ref + name + '/order/' + code).once('value').then(function (snapshot) {
                 if (snapshot.val()) {
                     database.ref(ref + name + '/order/' + snapshot.key + '/phone')
-                        .set(phone)
+                        .set(phone).then(function (value) {
+                        if (checkBlackList(phone)) {
+                            database.ref('employees/' + name + '/order/' + code).once('value').then(function (snapshot) {
+                                if (snapshot.val()) {
+                                    database.ref('blackLst/' + name + '/order/' + code).set(snapshot.val());
+                                }
+                            })
+                        }
+                    })
                 }
             });
         }
@@ -490,8 +650,6 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                     database.ref('employees/' + $scope.lstNV[$scope.index].name + '/order/' + donHang).update(dh);
                     dh['nv'] = $scope.lstNV[$scope.index].name;
                     database.ref('employees/Tất cả/order/' + donHang).update(dh).then(function () {
-                        setTotal($scope.lstNV[$scope.index].name);
-                        setTotal(all);
                         $mdToast.show({
                             hideDelay: 2000,
                             position: 'top left',
@@ -554,6 +712,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         }
 
         function getListHD(code) {
+            $scope.total = 0;
             creatRef(code);
             removeLis.on('child_added', function (data) {
                 $scope.$apply(function () {
