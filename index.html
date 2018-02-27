@@ -44,7 +44,7 @@
                             <label>Nhập mã đơn hàng ...</label>
                             <md-icon md-svg-src="img/ic_note_add_black_24px.svg"></md-icon>
                             <input ng-model="maDonHang" type="text" style="text-transform: uppercase"
-                                   ng-disabled="index==0||partner=='Tất cả'">
+                                   ng-disabled="index==0||partner=='Tất cả'" autocomplete="off">
                         </md-input-container>
                     </div>
                     <md-button type="submit" class="md-raised button-add md-primary" ng-disabled="index==0||partner=='Tất cả'">Thêm
@@ -92,6 +92,7 @@
         <div class="tb-hd">
             <dtable options="options" rows="data" class="material" on-page="paging(offset, size)"></dtable>
         </div>
+        <div class="chek-total"><md-button class="md-raised " ng-click="getTotal()"> {{total==0?'Tổng đơn hàng':'Tổng đơn hàng : '+total}}</md-button></div>
         <div class="bot-bnt">
             <input type="file" style="display: none">
             <md-card class="l-k">

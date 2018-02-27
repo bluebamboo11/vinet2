@@ -251,7 +251,23 @@ md-input-container {
     margin-right: 60px;
     float: right;
 }
-
+.chek-total {
+    margin-left: 46px;
+    margin-top: 30px;
+    float: left;
+    font-size: 20px;
+}
+.page-count {
+    display: none!important;
+}
+.chek-total>button{
+    width: 180px;
+    background-color: white !important;
+}
+.chek-total>button>span{
+    font-size: 16px;
+    text-transform: none!important;
+}
 .l-k {
     padding-top: 7px;
     height: 36px;

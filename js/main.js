@@ -12,6 +12,7 @@ firebase.initializeApp(config);
 angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
     .controller('AppCtrl', function ($scope, $http, $mdDialog, $mdToast) {
         var all = 'Tất cả';
+        $scope.total = 0;
         $scope.partner = all;
         $scope.lstPartner = [all];
         $scope.dateSearch = new Date();
@@ -26,7 +27,6 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         var database = firebase.database();
         getListHD(all);
         getBlackLst();
-        getPartner();
         var removeLis;
         getPartner();
         var commentsRef = database.ref('nv');
@@ -100,9 +100,9 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             }, {
                 name: "Nhân viên",
                 prop: "nv"
-            },{
-                name:"Đối tác",
-                prop:"partner"
+            }, {
+                name: "Đối tác",
+                prop: "partner"
             }],
             columnMode: 'force',
             paging: {
@@ -241,6 +241,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
 
         $scope.selectNv = function (index) {
             if ($scope.index !== index) {
+                $scope.total = 0;
                 $scope.options.paging.count = 0;
                 if (index === 0) {
                     $scope.options.columns = [{
@@ -255,9 +256,9 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                     }, {
                         name: "Nhân Viên",
                         prop: "nv"
-                    },{
-                        name:"Đối tác",
-                        prop:"partner"
+                    }, {
+                        name: "Đối tác",
+                        prop: "partner"
                     }]
                 }
                 else {
@@ -268,9 +269,9 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                         }, {
                             name: "Ngày",
                             prop: "date"
-                        },{
-                            name:"Đối tác",
-                            prop:"partner"
+                        }, {
+                            name: "Đối tác",
+                            prop: "partner"
                         }]
                     }
                 }
@@ -281,22 +282,33 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
         };
         $scope.addHD = function (ev) {
             $scope.maDonHang = $scope.maDonHang.toUpperCase();
-            database.ref('employees/Tất cả/order/' + $scope.maDonHang).once('value').then(function (snapshot) {
-                if (snapshot.val() && snapshot.val().date) {
-                    $mdDialog.show(
-                        $mdDialog.alert()
-                            .parent(angular.element(document.body))
-                            .clickOutsideToClose(true)
-                            .title('Lỗi thêm đơn hàng')
-                            .textContent('Đơn hàng ' + $scope.maDonHang + ' Đã được nhân viên ' + snapshot.val().nv + ' Thêm vào ' + snapshot.val().date)
-                            .ok('Ok')
-                            .targetEvent(ev)
-                    );
-                }
-                else {
-                    addDH()
-                }
-            })
+            $scope.maDonHang = convertString($scope.maDonHang);
+            if (!($scope.maDonHang.indexOf(" ") > -1)) {
+                database.ref('employees/Tất cả/order/' + $scope.maDonHang).once('value').then(function (snapshot) {
+                    if (snapshot.val() && snapshot.val().date) {
+                        $mdDialog.show(
+                            $mdDialog.alert()
+                                .parent(angular.element(document.body))
+                                .clickOutsideToClose(true)
+                                .title('Lỗi thêm đơn hàng')
+                                .textContent('Đơn hàng ' + convertStringPart($scope.maDonHang) + ' Đã được nhân viên ' + snapshot.val().nv + ' Thêm vào ' + snapshot.val().date)
+                                .ok('Ok')
+                                .targetEvent(ev)
+                        );
+                    }
+                    else {
+                        addDH()
+                    }
+                })
+            } else {
+                $mdToast.show(
+                    $mdToast.simple()
+                        .textContent('Mã không hợp lệ')
+                        .position('top left')
+                        .hideDelay(3000)
+                );
+            }
+
         };
         $scope.searchHD = function (ev) {
             $scope.searchKey = $scope.searchKey.toLocaleUpperCase();
@@ -351,8 +363,50 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             getListHD($scope.lstNV[$scope.index].name);
         };
         $scope.checkBlackLst = function () {
-            $scope.data=[];
+            $scope.data = [];
 
+        };
+        $scope.getTotal = function () {
+            code = $scope.lstNV[$scope.index].name;
+            var ref = '';
+            if (!$scope.blackLst) {
+                ref = 'employees/';
+            } else {
+                ref = 'blackLst/';
+
+            }
+            if (removeLis) {
+                removeLis.off();
+            }
+            if ($scope.locDay === 'all' && $scope.partner === all) {
+                removeLis = database.ref(ref + code + '/order');
+            }
+            if ($scope.locDay !== 'all' && $scope.partner === all) {
+                var dateSearch = '';
+                if ($scope.locDay === 'day') {
+                    dateSearch = moment($scope.dateSearch).format('DD / MM / YYYY');
+                } else {
+                    dateSearch = moment($scope.dateSearch).format('MM / YYYY');
+                }
+                removeLis = database.ref(ref + code + '/order').orderByChild($scope.locDay).equalTo(dateSearch);
+            }
+            if ($scope.locDay === 'all' && $scope.partner !== all) {
+                removeLis = database.ref(ref + code + '/order').orderByChild($scope.partner + 'date');
+            }
+            if ($scope.locDay !== 'all' && $scope.partner !== all) {
+                var dateSearch = '';
+                if ($scope.locDay === 'day') {
+                    dateSearch = moment($scope.dateSearch).format('DD / MM / YYYY');
+                } else {
+                    dateSearch = moment($scope.dateSearch).format('MM / YYYY');
+                }
+                removeLis = database.ref(ref + code + '/order').orderByChild($scope.partner + $scope.locDay).equalTo(dateSearch);
+            }
+            removeLis.once('value').then(function (snapshot) {
+                $scope.$apply(function () {
+                    $scope.total = Object.keys(snapshot.val()).length;
+                })
+            });
         };
 
         function getPartner() {
@@ -392,6 +446,14 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             });
         }
 
+        function convertString(value) {
+            return value.split('.').join('+');
+        }
+
+        function convertStringPart(value) {
+            return value.split('+').join('.');
+        }
+
         function setTotal(code) {
             database.ref('employees/' + code + '/total').transaction(function (post) {
                 return (post || 0) + 1;
@@ -418,7 +480,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 var donHang = angular.copy($scope.maDonHang);
                 $scope.maDonHang = '';
                 var dh = {};
-                dh.partner=$scope.partner;
+                dh.partner = $scope.partner;
                 dh['date'] = moment(new Date()).format('DD / MM / YYYY - HH:mm ');
                 dh['day'] = moment(new Date()).format('DD / MM / YYYY');
                 dh['month'] = moment(new Date()).format('MM / YYYY');
@@ -433,13 +495,13 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                         $mdToast.show({
                             hideDelay: 2000,
                             position: 'top left',
-                            template: '<md-toast>Đã thêm đơn hàng&nbsp<span style="color: green ;flex: none">' + donHang + '</span>&nbspthành công </md-toast>'
+                            template: '<md-toast>Đã thêm đơn hàng&nbsp<span style="color: green ;flex: none">' + convertStringPart(donHang) + '</span>&nbspthành công </md-toast>'
                         });
                     }).catch(function (error) {
                         $mdToast.show({
                             hideDelay: 2000,
                             position: 'top left',
-                            template: '<md-toast><span style="color: green ;flex: none">' + donHang + '</span><span style="color: darkred ;flex: none">&nbspThêm thất bại </span></md-toast>'
+                            template: '<md-toast><span style="color: green ;flex: none">' + convertStringPart(donHang) + '</span><span style="color: darkred ;flex: none">&nbspThêm thất bại </span></md-toast>'
                         });
 
                     });
@@ -454,7 +516,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
             }
         }
 
-        function getListHD(code) {
+        function creatRef(code) {
             var ref = '';
             if (!$scope.blackLst) {
                 ref = 'employees/';
@@ -489,14 +551,18 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload'])
                 }
                 removeLis = database.ref(ref + code + '/order').limitToLast(maxDh).orderByChild($scope.partner + $scope.locDay).equalTo(dateSearch);
             }
+        }
+
+        function getListHD(code) {
+            creatRef(code);
             removeLis.on('child_added', function (data) {
                 $scope.$apply(function () {
                     $scope.data.unshift({
-                        code: data.key,
+                        code: convertStringPart(data.key),
                         date: data.val().date,
                         phone: data.val().phone,
                         nv: data.val().nv,
-                        partner:data.val().partner
+                        partner: data.val().partner
                     });
                     $scope.options.paging.count = $scope.data.length;
                 });
