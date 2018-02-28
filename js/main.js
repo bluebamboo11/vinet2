@@ -28,13 +28,14 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
         $scope.users = null;
         $scope.user = null;
         $scope.pass = null;
-        $scope.isLogin = false;
+        $scope.isLogin = true;
         var blackLst = [];
         var database = firebase.database();
         getListHD(all);
         getBlackLst();
         var removeLis;
         getPartner();
+        listenRemove();
         var commentsRef = database.ref('nv');
         commentsRef.on('child_added', function (data) {
             $scope.$apply(function () {
@@ -76,6 +77,44 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
 
             });
         };
+        $scope.removePartner = function (ev) {
+            var confirm = $mdDialog.prompt()
+                .title('Xóa đối tác')
+                .textContent('Nhập tên đối tác cần xóa')
+                .placeholder('nhập ...')
+                .ariaLabel('Tên đối tác')
+                .targetEvent(ev)
+                .required(true)
+                .ok('Xóa')
+                .cancel('Hủy');
+            $mdDialog.show(confirm).then(function (result) {
+                database.ref('partner/' + result).remove();
+            });
+        };
+        $scope.logOut = function () {
+            $scope.isLogin = false;
+        };
+
+        function listenRemove() {
+            database.ref('partner/').on('child_removed', function (data) {
+                $scope.lstPartner.splice($scope.lstPartner.indexOf(data.val().name), 1);
+                $mdToast.show(
+                    $mdToast.simple()
+                        .textContent('Xóa thành công')
+                        .position('top left')
+                        .hideDelay(3000)
+                );
+            });
+            database.ref('nv/').on('child_removed', function (data) {
+                $scope.lstNV.splice($scope.lstNV.indexOf({name: data.val().name}), 1);
+                $mdToast.show(
+                    $mdToast.simple()
+                        .textContent('Xóa thành công')
+                        .position('top left')
+                        .hideDelay(3000)
+                );
+            });
+        }
 
         function removeHd(black, name, code) {
             database.ref(black + name + '/order/' + code).remove().then(function (value) {
@@ -102,16 +141,8 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                 .ok('Xóa')
                 .cancel('Hủy');
             $mdDialog.show(confirm).then(function (result) {
-                database.ref('nv/' + result).remove()
-                database.ref('employees/' + result).remove().then(function (value) {
-                    $scope.lstNV.splice($scope.lstNV.indexOf({name: result}), 1);
-                    $mdToast.show(
-                        $mdToast.simple()
-                            .textContent('Xóa thành công')
-                            .position('top left')
-                            .hideDelay(3000)
-                    );
-                });
+                database.ref('nv/' + result).remove();
+                database.ref('employees/' + result).remove();
             });
         };
         $scope.login = function () {
@@ -359,10 +390,12 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                 if (index === 0) {
                     $scope.options.columns = [{
                         name: "Mã Đơn hàng",
-                        prop: "code"
+                        prop: "code",
+                        width: 200
                     }, {
                         name: "Ngày",
-                        prop: "date"
+                        prop: "date",
+                        width: 200
                     }, {
                         name: "Số điện thoại",
                         prop: "phone"
@@ -549,6 +582,9 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
             });
 
         };
+        $scope.removeHDMonth = function (ev) {
+            showDialogRemoveHD(ev);
+        };
 
         function converLex(code) {
             return code.split('-')[1];
@@ -726,6 +762,39 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                     $scope.options.paging.count = $scope.data.length;
                 });
             });
+        }
+
+        function showDialogRemoveHD($event) {
+            $scope.items = [1, 2, 3];
+            var parentEl = angular.element(document.body);
+            $mdDialog.show({
+                parent: parentEl,
+                targetEvent: $event,
+                template:
+                '<md-dialog aria-label="Xóa đơn hàng theo tháng">\n' +
+                '    <md-dialog-content class="md-dialog-content">\n' +
+                '        <h2 class="md-title ">Xóa Đơn hàng theo tháng</h2>\n' +
+                '<div  class="md-dialog-content-body " ><p >Nhập tháng cần xóa</p></div>' +
+                '   <md-datepicker style="width: 100%!important;" md-mode="month" ng-model="dateRemove" md-placeholder="Nhập tháng"\n' +
+                '                       md-date-locale="dateLocaleMonth"></md-datepicker>\n' +
+                '    </md-dialog-content>\n' +
+                '    <md-dialog-actions>\n' +
+                '        <md-button ng-click="closeDialog()" class="md-primary">Hủy</md-button>\n' +
+                '        <md-button ng-click="closeDialog()" class="md-primary"> Xóa</md-button>\n' +
+                '    </md-dialog-actions>\n' +
+                '</md-dialog>',
+                locals: {
+                    items: $scope.items
+                },
+                controller: DialogController
+            });
+
+            function DialogController($scope, $mdDialog, items) {
+                $scope.items = items;
+                $scope.closeDialog = function () {
+                    $mdDialog.hide();
+                }
+            }
         }
     })
     .config(function ($mdDateLocaleProvider) {

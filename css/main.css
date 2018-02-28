@@ -342,6 +342,6 @@ md-input-container {
 }
 .admin{
     right: 70px!important;
-    position: fixed!important;
+    position: absolute!important;
     top: 8px!important;
 }

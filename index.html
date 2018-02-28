@@ -19,40 +19,45 @@
     <script src="js/ng-file-upload.min.js"></script>
     <script src="js/FileSaver.min.js"></script>
     <script src="js/angular-messages.min.js"></script>
-    <!--<script src="https://www.gstatic.com/firebasejs/4.10.1/firebase.js"></script>-->
-    <script src="/__/firebase/4.10.1/firebase.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/4.10.1/firebase.js"></script>
+    <!--<script src="/__/firebase/4.10.1/firebase.js"></script>-->
     <script src="js/main.js?v=1"></script>
 </head>
 <body ng-app="MyApp" ng-controller="AppCtrl">
 <div class="container" ng-show="isLogin">
     <md-menu>
-        <md-button class="md-accent md-raised admin"  ng-click="$mdMenu.open($event)">
-           Quản trị
+        <md-button class="md-accent md-raised admin" ng-click="$mdMenu.open($event)">
+            Quản trị
         </md-button>
         <md-menu-content width="4">
-            <md-menu-item >
+            <md-menu-item>
                 <md-button ng-click="removeNV($event)">
                     Xóa Nhân viên
                 </md-button>
             </md-menu-item>
-            <md-menu-item >
-                <md-button ng-click="announceClick($index)">
+            <md-menu-item>
+                <md-button ng-click="removeHDMonth($event)">
                     Xóa đơn hàng theo tháng
                 </md-button>
             </md-menu-item>
-            <md-menu-item >
+            <md-menu-item>
                 <md-button ng-click="removeHDCode($event)">
                     Xóa đơn hàng theo mã
                 </md-button>
             </md-menu-item>
-            <md-menu-item >
-                <md-button ng-click="removeHDCode($event)">
+            <md-menu-item>
+                <md-button ng-click="removePartner($event)">
                     Xóa đối tác
                 </md-button>
             </md-menu-item>
-            <md-menu-item >
+            <md-menu-item>
                 <md-button ng-click="changePass($event)">
-                   Đổi mật khẩu
+                    Đổi mật khẩu
+                </md-button>
+            </md-menu-item>
+            <md-menu-item>
+                <md-button ng-click="logOut()">
+                    Đăng xuất
                 </md-button>
             </md-menu-item>
         </md-menu-content>
@@ -178,7 +183,8 @@
 
                 <md-input-container>
                     <label>Nhập mật khẩu</label>
-                    <input name = "pass" type="password" md-maxlength="30" required pass name="description" ng-model="pass">
+                    <input name="pass" type="password" md-maxlength="30" required pass name="description"
+                           ng-model="pass">
                     <div ng-messages="userForm.pass.$error">
                         <div ng-message="pass">Mật khẩu chưa đúng</div>
                     </div>
