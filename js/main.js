@@ -241,8 +241,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                 width: 200
             }, {
                 name: "Ngày",
-                prop: "date",
-                width: 200
+                prop: "date"
             }, {
                 name: "Số điện thoại",
                 prop: "phone"
@@ -384,8 +383,8 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                         width: 200
                     }, {
                         name: "Ngày",
-                        prop: "date",
-                        width: 200
+                        prop: "date"
+
                     }, {
                         name: "Số điện thoại",
                         prop: "phone"
@@ -399,16 +398,18 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                 }
                 else {
                     if ($scope.index === 0) {
-                        $scope.options.columns = [{
-                            name: "Mã Đơn hàng",
-                            prop: "code"
-                        }, {
-                            name: "Ngày",
-                            prop: "date"
-                        }, {
-                            name: "Đối tác",
-                            prop: "partner"
-                        }]
+                        $scope.options.columns = [
+                            {
+                                name: "Mã Đơn hàng",
+                                prop: "code"
+                            },
+                            {
+                                name: "Ngày",
+                                prop: "date"
+                            }, {
+                                name: "Đối tác",
+                                prop: "partner"
+                            }]
                     }
                 }
                 $scope.index = index;
@@ -418,14 +419,15 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
         };
         $scope.addHD = function (ev) {
             $scope.maDonHang = $scope.maDonHang.toUpperCase();
+            var maDonHang = angular.copy($scope.maDonHang);
             if ($scope.partner === 'lex') {
-                $scope.maDonHang = converLex($scope.maDonHang);
+                maDonHang = converLex($scope.maDonHang);
             }
-            converLex($scope.maDonHang);
-            $scope.maDonHang = convertString($scope.maDonHang);
+            maDonHang = convertString(maDonHang);
             if (!($scope.maDonHang.indexOf(" ") > -1)) {
-                database.ref('employees/Tất cả/order/' + $scope.maDonHang).once('value').then(function (snapshot) {
+                database.ref('employees/Tất cả/order/' + maDonHang).once('value').then(function (snapshot) {
                     if (snapshot.val() && snapshot.val().date) {
+                        playAudio();
                         $mdDialog.show(
                             $mdDialog.alert()
                                 .parent(angular.element(document.body))
@@ -437,10 +439,11 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                         );
                     }
                     else {
-                        addDH()
+                        addDH(maDonHang);
                     }
                 })
             } else {
+                playAudio();
                 $mdToast.show(
                     $mdToast.simple()
                         .textContent('Mã không hợp lệ')
@@ -450,17 +453,22 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
             }
 
         };
+        function playAudio() {
+                var audio = new Audio('sound/nasty-error-long.mp3');
+                audio.play();
+        }
         $scope.searchHD = function (ev) {
             $scope.searchKey = $scope.searchKey.toLocaleUpperCase();
+            var searchKey = convertString($scope.searchKey);
             if ($scope.searchKey) {
-                database.ref('employees/Tất cả/order/' + $scope.searchKey).once('value').then(function (snapshot) {
+                database.ref('employees/Tất cả/order/' + searchKey).once('value').then(function (snapshot) {
                     if (snapshot.val()) {
                         if (snapshot.val().nv) {
                             $mdDialog.show(
                                 $mdDialog.alert()
                                     .parent(angular.element(document.body))
                                     .clickOutsideToClose(true)
-                                    .title('Đơn hàng : ' + snapshot.key)
+                                    .title('Đơn hàng : ' + convertStringPart(snapshot.key))
                                     .textContent('Nhân viên : ' + snapshot.val().nv + ' -- Thời gian : ' + snapshot.val().date + '-- Đối tác : ' + snapshot.val().partner)
                                     .ok('Ok')
                                     .targetEvent(ev)
@@ -470,7 +478,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                                 $mdDialog.alert()
                                     .parent(angular.element(document.body))
                                     .clickOutsideToClose(true)
-                                    .title('Đơn hàng : ' + snapshot.key)
+                                    .title('Đơn hàng : ' + convertStringPart(snapshot.key))
                                     .textContent('Đơn hàng chưa được nhân viên nào xử lý')
                                     .ok('Ok')
                                     .targetEvent(ev)
@@ -755,9 +763,8 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
             });
         }
 
-        function addDH() {
+        function addDH(donHang) {
             if ($scope.maDonHang) {
-                var donHang = angular.copy($scope.maDonHang);
                 $scope.maDonHang = '';
                 var dh = {};
                 dh.partner = $scope.partner;
@@ -776,6 +783,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                             template: '<md-toast>Đã thêm đơn hàng&nbsp<span style="color: green ;flex: none">' + convertStringPart(donHang) + '</span>&nbspthành công </md-toast>'
                         });
                     }).catch(function (error) {
+                        playAudio();
                         $mdToast.show({
                             hideDelay: 2000,
                             position: 'top left',
@@ -785,6 +793,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                     });
                 }
             } else {
+                playAudio();
                 $mdToast.show(
                     $mdToast.simple()
                         .textContent('Mã đơn hàng không được để trống')
