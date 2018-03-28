@@ -7,6 +7,15 @@ var config = {
     storageBucket: "",
     messagingSenderId: "233967204421"
 };
+// var config = {
+//     apiKey: "AIzaSyA0yd7x0JGVECXhiLmdJuhfSoCTPSoInYo",
+//     authDomain: "testting-a51a8.firebaseapp.com",
+//     databaseURL: "https://testting-a51a8.firebaseio.com",
+//     projectId: "testting-a51a8",
+//     storageBucket: "",
+//     messagingSenderId: "944769943074"
+// };
+
 var maxDh = 100;
 firebase.initializeApp(config);
 angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages'])
@@ -20,6 +29,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
         $scope.data = [];
         $scope.blackLst = false;
         $scope.erorr = true;
+        var show = true;
         $scope.maDonHang = '';
         $scope.index = 0;
         $scope.lstNV = [{name: all}];
@@ -28,7 +38,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
         $scope.users = null;
         $scope.user = null;
         $scope.pass = null;
-        $scope.isLogin = true;
+        $scope.isLogin = false;
         var blackLst = [];
         var database = firebase.database();
         getListHD(all);
@@ -95,40 +105,6 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
             $scope.isLogin = false;
         };
 
-        function listenRemove() {
-            database.ref('partner/').on('child_removed', function (data) {
-                $scope.lstPartner.splice($scope.lstPartner.indexOf(data.val().name), 1);
-                $mdToast.show(
-                    $mdToast.simple()
-                        .textContent('Xóa thành công')
-                        .position('top left')
-                        .hideDelay(3000)
-                );
-            });
-            database.ref('nv/').on('child_removed', function (data) {
-                $scope.lstNV.splice($scope.lstNV.indexOf({name: data.val().name}), 1);
-                $mdToast.show(
-                    $mdToast.simple()
-                        .textContent('Xóa thành công')
-                        .position('top left')
-                        .hideDelay(3000)
-                );
-            });
-        }
-
-        function removeHd(black, name, code) {
-            database.ref(black + name + '/order/' + code).remove().then(function (value) {
-                if (show) {
-                    show = false;
-                    $mdToast.show(
-                        $mdToast.simple()
-                            .textContent('Xóa thành công')
-                            .position('top left')
-                            .hideDelay(3000)
-                    );
-                }
-            });
-        }
 
         $scope.removeNV = function (ev) {
             var confirm = $mdDialog.prompt()
@@ -155,10 +131,17 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                         if (snapshot.val() == $scope.pass) {
                             $scope.$apply(function () {
                                 $scope.isLogin = true;
+                                $scope.showLoad = false;
                             })
-                        } else {
+                        }
+                        else {
+                            $mdToast.show(
+                                $mdToast.simple()
+                                    .textContent('Mật khẩu không đúng')
+                                    .position('top left')
+                                    .hideDelay(3000)
+                            );
                             $scope.$apply(function () {
-                                $scope.userForm.pass.$error = {'pass': true};
                                 $scope.showLoad = false
                             })
 
@@ -170,11 +153,18 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                         if (snapshot.val() === $scope.pass) {
                             $scope.$apply(function () {
                                 $scope.isLogin = true;
+                                $scope.showLoad = false;
                             })
                         }
                         else {
+                            $mdToast.show(
+                                $mdToast.simple()
+                                    .textContent('Mật khẩu không đúng')
+                                    .position('top left')
+                                    .hideDelay(3000)
+                            );
                             $scope.$apply(function () {
-                                $scope.userForm.pass.$error.pass = true;
+                                $scope.showLoad = false;
                                 $scope.showLoad = false
                             })
                         }
@@ -305,7 +295,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
 
             });
         };
-        var show = true;
+
         $scope.upHd = function (file, ev) {
             if (file) {
                 var confirm = $mdDialog.confirm()
@@ -565,11 +555,11 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
             $scope.getTotal(function (data) {
                 if ($scope.lstNV[$scope.index].name !== all) {
                     for (key in data) {
-                        dataExport.push([key, data[key].date, $scope.lstNV[$scope.index].name, data[key].partner])
+                        dataExport.push([convertStringPart(key), data[key].date, $scope.lstNV[$scope.index].name, data[key].partner])
                     }
                 } else {
                     for (key in data) {
-                        dataExport.push([key, data[key].date, data[key].nv, data[key].partner])
+                        dataExport.push([convertStringPart(key), data[key].date, data[key].nv, data[key].partner])
                     }
                 }
                 var csv = Papa.unparse({
@@ -583,12 +573,106 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
 
         };
         $scope.removeHDMonth = function (ev) {
-            showDialogRemoveHD(ev);
+            showDialogRemoveHD(ev, function (date) {
+                var dateSearch = moment(date).format('MM / YYYY');
+                show = true;
+                for (var i = 0; i < $scope.lstNV.length; i++) {
+                    var removeLis1 = database.ref('employees/' + $scope.lstNV[i].name + '/order');
+                    var removeLis2 = database.ref('blackLst/' + $scope.lstNV[i].name + '/order');
+                    removeByOrder(removeLis1, removeLis2, dateSearch);
+                }
+
+            });
+        };
+        $scope.checkPri = function () {
+
+            if ($scope.index === 0 || $scope.partner === 'Tất cả') {
+                return true;
+            }
+            if ($scope.user === admin) {
+                return false;
+            }
+            if ($scope.lstNV[$scope.index].name === $scope.user) {
+                return false;
+            } else {
+                return true;
+            }
+
+
         };
 
-        function converLex(code) {
-            return code.split('-')[1];
+        function listenRemove() {
+            database.ref('partner/').on('child_removed', function (data) {
+                $scope.lstPartner.splice($scope.lstPartner.indexOf(data.val().name), 1);
+                $mdToast.show(
+                    $mdToast.simple()
+                        .textContent('Đã xóa đối tác ' + data.key)
+                        .position('top left')
+                        .hideDelay(3000)
+                );
+            });
+            database.ref('nv/').on('child_removed', function (data) {
+                $scope.lstNV.splice($scope.lstNV.indexOf({name: data.val().name}), 1);
+                $mdToast.show(
+                    $mdToast.simple()
+                        .textContent('Đã xóa nhân viên ' + data.key)
+                        .position('top left')
+                        .hideDelay(3000)
+                );
+            });
         }
+
+        function removeHd(black, name, code) {
+            database.ref(black + name + '/order/' + code).remove().then(function (value) {
+                if (show) {
+                    show = false;
+                    $mdToast.show(
+                        $mdToast.simple()
+                            .textContent('Xóa thành công')
+                            .position('top left')
+                            .hideDelay(3000)
+                    );
+                }
+            });
+        }
+
+        function removeByOrder(data1, data2, dateSearch) {
+            data1.orderByChild('month').equalTo(dateSearch).once('value').then(function (snapshot) {
+                var updates = {};
+                for (var key in snapshot.val()) {
+                    updates[key] = null;
+                }
+                data1.update(updates);
+            });
+            data2.orderByChild('month').equalTo(dateSearch).once('value').then(function (snapshot) {
+                var updates = {};
+                for (var key in snapshot.val()) {
+                    updates[key] = null;
+                }
+                data2.update(updates).then(function (value) {
+                    if (updates && show) {
+                        show = false;
+                        $mdToast.show(
+                            $mdToast.simple()
+                                .textContent('Xoá đơn hàng thành công')
+                                .position('top left')
+                                .hideDelay(3000)
+                        );
+                    }
+                });
+
+            });
+        }
+
+        function converLex(code) {
+            if (code.split('-')[1]) {
+                return code.split('-')[1];
+            } else {
+                return code;
+            }
+
+        }
+
 
         function getPartner() {
             database.ref('partner').on('child_added', function (data) {
@@ -764,7 +848,7 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
             });
         }
 
-        function showDialogRemoveHD($event) {
+        function showDialogRemoveHD($event, remove) {
             $scope.items = [1, 2, 3];
             var parentEl = angular.element(document.body);
             $mdDialog.show({
@@ -775,12 +859,12 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                 '    <md-dialog-content class="md-dialog-content">\n' +
                 '        <h2 class="md-title ">Xóa Đơn hàng theo tháng</h2>\n' +
                 '<div  class="md-dialog-content-body " ><p >Nhập tháng cần xóa</p></div>' +
-                '   <md-datepicker style="width: 100%!important;" md-mode="month" ng-model="dateRemove" md-placeholder="Nhập tháng"\n' +
+                '   <md-datepicker style="margin-left: -16x!important;" md-mode="month" ng-model="dateRemove" md-placeholder="Nhập tháng"\n' +
                 '                       md-date-locale="dateLocaleMonth"></md-datepicker>\n' +
                 '    </md-dialog-content>\n' +
                 '    <md-dialog-actions>\n' +
                 '        <md-button ng-click="closeDialog()" class="md-primary">Hủy</md-button>\n' +
-                '        <md-button ng-click="closeDialog()" class="md-primary"> Xóa</md-button>\n' +
+                '        <md-button  ng-disabled="!dateRemove" ng-click="removeOderMonth()" class="md-primary"> Xóa</md-button>\n' +
                 '    </md-dialog-actions>\n' +
                 '</md-dialog>',
                 locals: {
@@ -790,11 +874,142 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
             });
 
             function DialogController($scope, $mdDialog, items) {
-                $scope.items = items;
+                $scope.dateRemove = null;
                 $scope.closeDialog = function () {
                     $mdDialog.hide();
+                };
+                $scope.removeOderMonth = function () {
+                    $mdDialog.hide();
+                    remove($scope.dateRemove);
                 }
             }
+        }
+
+        $scope.openChangePass = function (ev) {
+            showDialogChangePass(ev);
+        };
+        $scope.closeDialog = function () {
+            $mdDialog.hide();
+        };
+        $scope.passOld = '';
+        $scope.passNew = '';
+        $scope.userPass = '';
+
+        $scope.changePass = function () {
+            if ($scope.pass === $scope.passOld) {
+                if ($scope.userPass !== admin) {
+                    database.ref('nv/' + $scope.userPass + '/pass').set($scope.passNew).then(function (value) {
+                        $mdToast.show(
+                            $mdToast.simple()
+                                .textContent('Đổi mật khẩu thành công')
+                                .position('top left')
+                                .hideDelay(3000)
+                        );
+                    });
+                } else {
+                    database.ref('admin/pass').set($scope.passNew).then(function (value) {
+                        $mdToast.show(
+                            $mdToast.simple()
+                                .textContent('Đổi mật khẩu thành công')
+                                .position('top left')
+                                .hideDelay(3000)
+                        );
+                    });
+                }
+            }
+            else {
+                $mdToast.show(
+                    $mdToast.simple()
+                        .textContent('Mật khẩu không chính xác')
+                        .position('top left')
+                        .hideDelay(3000)
+                );
+            }
+        };
+
+        function showDialogChangePass($event) {
+            var parentEl = angular.element(document.body);
+            $mdDialog.show({
+                parent: parentEl,
+                targetEvent: $event,
+                template:
+                '<md-dialog aria-label="Xóa đơn hàng theo tháng">\n' +
+                '    <md-dialog-content class="md-dialog-content">\n' +
+                '        <h2 class="md-title ">Đối mật khẩu</h2>\n' +
+                '  <md-select ng-disabled="userLogin!==admin" name="user" required placeholder="Chọn tài khoản" ng-model="userPass" \n' +
+                '                           style="width: 100%;">\n' +
+                '    <md-option ng-value="user" ng-repeat="user in users">{{user}}</md-option>\n' +
+                '   </md-select>' +
+                '<md-input-container>\n' +
+                ' <label>Nhập mật khẩu tài khoản</label>\n' +
+                '         <input name="pass" type="password" md-maxlength="30" required  name="description"\n' +
+                '                           ng-model="passOld">\n' +
+                '          </md-input-container>' + '' +
+                '<md-input-container>\n' +
+                '                    <label>Nhập mật khẩu mới</label>\n' +
+                '                    <input name="pass"  md-maxlength="30" required  name="description"\n' +
+                '                           ng-model="passNew">\n' +
+                '                </md-input-container>' +
+                '    </md-dialog-content>\n' +
+                '    <md-dialog-actions>\n' +
+                '        <md-button ng-click="closeDialog()" class="md-primary">Hủy</md-button>\n' +
+                '        <md-button  ng-disabled="!userPass||!passOld||!passNew" ng-click="changePass()" class="md-primary"> Xác nhận</md-button>\n' +
+                '    </md-dialog-actions>\n' +
+                '</md-dialog>',
+                locals: {
+                    pass: $scope.pass,
+                    userLogin: $scope.user,
+                    users: $scope.users
+                },
+                controller: DialogController
+            });
+
+            function DialogController($scope, $mdDialog, pass, userLogin, users) {
+                $scope.userLogin = userLogin;
+                $scope.userPass = angular.copy(userLogin);
+                $scope.users = users;
+                $scope.admin = 'Admin';
+                var database = firebase.database();
+                $scope.changePass = function () {
+                    if (pass == $scope.passOld) {
+                        $mdDialog.hide();
+                        if ($scope.userPass !== admin) {
+                            database.ref('nv/' + $scope.userPass + '/pass').set($scope.passNew).then(function (value) {
+                                $mdToast.show(
+                                    $mdToast.simple()
+                                        .textContent('Đổi mật khẩu thành công')
+                                        .position('top left')
+                                        .hideDelay(3000)
+                                );
+                            });
+                        } else {
+                            database.ref('admin/pass').set($scope.passNew).then(function (value) {
+                                $mdToast.show(
+                                    $mdToast.simple()
+                                        .textContent('Đổi mật khẩu thành công')
+                                        .position('top left')
+                                        .hideDelay(3000)
+                                );
+                            });
+                        }
+                    }
+                    else {
+                        $mdToast.show(
+                            $mdToast.simple()
+                                .textContent('Mật khẩu không chính xác')
+                                .position('top left')
+                                .hideDelay(3000)
+                        );
+                    }
+                };
+
+                $scope.closeDialog = function () {
+                    $mdDialog.hide();
+                };
+
+            }
+
+
         }
     })
     .config(function ($mdDateLocaleProvider) {
