@@ -16,7 +16,7 @@ var config = {
 //     messagingSenderId: "944769943074"
 // };
 
-var maxDh = 100;
+var maxDh = 20;
 firebase.initializeApp(config);
 angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages'])
     .controller('AppCtrl', function ($scope, $http, $mdDialog, $mdToast) {
@@ -732,10 +732,12 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
         }
 
         function convertString(value) {
+            value = value.split('/').join('&');
             return value.split('.').join('+');
         }
 
         function convertStringPart(value) {
+            value = value.split('&').join('/');
             return value.split('+').join('.');
         }
 
@@ -762,7 +764,9 @@ angular.module('MyApp', ['ngMaterial', 'data-table', 'ngFileUpload', 'ngMessages
                 }
             });
         }
+function checlOderBlackList() {
 
+}
         function addDH(donHang) {
             if ($scope.maDonHang) {
                 $scope.maDonHang = '';
